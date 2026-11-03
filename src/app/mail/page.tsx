@@ -8,6 +8,7 @@ import MailList from "@/components/mail/MailList";
 import MailViewer from "@/components/mail/MailViewer";
 import ComposeModal, { ComposeInitialData } from "@/components/mail/ComposeModal";
 import ConnectWelcome from "@/components/mail/ConnectWelcome";
+import JabvoxAppLayout from "@/components/layout/JabvoxAppLayout";
 import { EmailMessageSummary, EmailMessageDetail } from "@/lib/gmail/service";
 import { AlertCircle, CheckCircle2, X } from "lucide-react";
 
@@ -438,121 +439,123 @@ function MailDashboardContent() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#f6f8fc]">
-      {/* Top Bar */}
-      <TopBar
-        user={user}
-        accounts={accounts}
-        activeAccount={activeAccount}
-        onSelectAccount={handleSelectAccount}
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
-        searchQuery={searchQuery}
-        onSearch={handleSearch}
-        onToggleSidebar={() => setIsMobileSidebarOpen(true)}
-        onConnectGmail={handleConnectGmail}
-      />
+    <JabvoxAppLayout user={user}>
+      <div className="flex flex-col h-full overflow-hidden bg-[#f6f8fc]">
+        {/* Top Bar */}
+        <TopBar
+          user={user}
+          accounts={accounts}
+          activeAccount={activeAccount}
+          onSelectAccount={handleSelectAccount}
+          onRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+          searchQuery={searchQuery}
+          onSearch={handleSearch}
+          onToggleSidebar={() => setIsMobileSidebarOpen(true)}
+          onConnectGmail={handleConnectGmail}
+        />
 
-      {/* Notification Toast */}
-      {banner && (
-        <div
-          className={`px-4 py-2 text-xs flex items-center justify-between transition-all ${
-            banner.type === "success"
-              ? "bg-emerald-600 text-white"
-              : "bg-red-600 text-white"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {banner.type === "success" ? (
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            ) : (
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            )}
-            <span>{banner.message}</span>
-          </div>
-          <button
-            onClick={() => setBanner(null)}
-            className="p-1 hover:bg-black/20 rounded"
+        {/* Notification Toast */}
+        {banner && (
+          <div
+            className={`px-4 py-2 text-xs flex items-center justify-between transition-all ${
+              banner.type === "success"
+                ? "bg-emerald-600 text-white"
+                : "bg-red-600 text-white"
+            }`}
           >
-            <X className="w-3.5 h-3.5" />
-          </button>
+            <div className="flex items-center gap-2">
+              {banner.type === "success" ? (
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              )}
+              <span>{banner.message}</span>
+            </div>
+            <button
+              onClick={() => setBanner(null)}
+              className="p-1 hover:bg-black/20 rounded"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Main Workspace */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Sidebar */}
+          <Sidebar
+            currentFolder={currentFolder}
+            onSelectFolder={handleSelectFolder}
+            onOpenCompose={() => {
+              setComposeData(null);
+              setIsComposeOpen(true);
+            }}
+            unreadCount={unreadCount}
+            isOpenMobile={isMobileSidebarOpen}
+            onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          />
+
+          {/* Content Area */}
+          <main className="flex-1 flex flex-col overflow-hidden bg-white md:rounded-tl-2xl md:mr-3 md:mb-3 shadow-xs border border-gray-200/80">
+            {!activeAccount ? (
+              <ConnectWelcome
+                userName={user.name}
+                onConnect={handleConnectGmail}
+                loading={isRefreshing}
+              />
+            ) : selectedMessage ? (
+              <MailViewer
+                messageSummary={selectedMessage}
+                accountId={activeAccount.id}
+                onBack={() => {
+                  setSelectedMessage(null);
+                  fetchMessages(currentPageToken, true);
+                }}
+                onAction={handleViewerAction}
+                onReply={handleReply}
+              />
+            ) : (
+              <MailList
+                messages={messages}
+                loading={loadingMessages}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onSelectAll={handleSelectAll}
+                onOpenMessage={(msg) => setSelectedMessage(msg)}
+                onToggleStar={handleToggleStar}
+                onBatchAction={handleBatchAction}
+                onQuickAction={handleQuickAction}
+                nextPageToken={nextPageToken}
+                onNextPage={handleNextPage}
+                onPrevPage={handlePrevPage}
+                hasPrevPage={pageHistory.length > 0}
+                searchActive={Boolean(searchQuery.trim())}
+              />
+            )}
+          </main>
         </div>
-      )}
 
-      {/* Main Workspace */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar
-          currentFolder={currentFolder}
-          onSelectFolder={handleSelectFolder}
-          onOpenCompose={() => {
-            setComposeData(null);
-            setIsComposeOpen(true);
-          }}
-          unreadCount={unreadCount}
-          isOpenMobile={isMobileSidebarOpen}
-          onCloseMobile={() => setIsMobileSidebarOpen(false)}
-        />
-
-        {/* Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-white md:rounded-tl-2xl md:mr-3 md:mb-3 shadow-xs border border-gray-200/80">
-          {!activeAccount ? (
-            <ConnectWelcome
-              userName={user.name}
-              onConnect={handleConnectGmail}
-              loading={isRefreshing}
-            />
-          ) : selectedMessage ? (
-            <MailViewer
-              messageSummary={selectedMessage}
-              accountId={activeAccount.id}
-              onBack={() => {
-                setSelectedMessage(null);
-                fetchMessages(currentPageToken, true);
-              }}
-              onAction={handleViewerAction}
-              onReply={handleReply}
-            />
-          ) : (
-            <MailList
-              messages={messages}
-              loading={loadingMessages}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-              onSelectAll={handleSelectAll}
-              onOpenMessage={(msg) => setSelectedMessage(msg)}
-              onToggleStar={handleToggleStar}
-              onBatchAction={handleBatchAction}
-              onQuickAction={handleQuickAction}
-              nextPageToken={nextPageToken}
-              onNextPage={handleNextPage}
-              onPrevPage={handlePrevPage}
-              hasPrevPage={pageHistory.length > 0}
-              searchActive={Boolean(searchQuery.trim())}
-            />
-          )}
-        </main>
+        {/* Compose Window Modal */}
+        {isComposeOpen && activeAccount && (
+          <ComposeModal
+            accountId={activeAccount.id}
+            initialData={composeData}
+            onClose={() => {
+              setIsComposeOpen(false);
+              setComposeData(null);
+            }}
+            onSentSuccess={() => {
+              setBanner({
+                type: "success",
+                message: "Mensaje enviado exitosamente.",
+              });
+              fetchMessages(currentPageToken, true);
+            }}
+          />
+        )}
       </div>
-
-      {/* Compose Window Modal */}
-      {isComposeOpen && activeAccount && (
-        <ComposeModal
-          accountId={activeAccount.id}
-          initialData={composeData}
-          onClose={() => {
-            setIsComposeOpen(false);
-            setComposeData(null);
-          }}
-          onSentSuccess={() => {
-            setBanner({
-              type: "success",
-              message: "Mensaje enviado exitosamente.",
-            });
-            fetchMessages(currentPageToken, true);
-          }}
-        />
-      )}
-    </div>
+    </JabvoxAppLayout>
   );
 }
 

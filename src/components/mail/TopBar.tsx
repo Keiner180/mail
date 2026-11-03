@@ -106,27 +106,25 @@ export default function TopBar({
 
   return (
     <header className="h-16 bg-[#f6f8fc] border-b border-gray-200/80 px-4 flex items-center justify-between gap-4 sticky top-0 z-30">
-      {/* Left: Hamburger & Brand */}
-      <div className="flex items-center gap-3 min-w-[220px]">
+      {/* Left: Module title & icon */}
+      <div className="flex items-center gap-2.5 min-w-[160px]">
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            className="p-2 -ml-2 rounded-full hover:bg-gray-200/70 text-gray-600 md:hidden"
-            title="Abrir menú"
+            className="p-1.5 -ml-1 rounded-lg hover:bg-gray-200/70 text-gray-600 md:hidden"
+            title="Carpetas de correo"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4" />
           </button>
         )}
 
-        <Link href="/mail" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
-            <Mail className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="font-bold text-gray-900 text-lg tracking-tight">Jabvox</span>
-            <span className="text-blue-600 font-semibold text-lg ml-1">Mail</span>
-          </div>
-        </Link>
+        <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+          <Mail className="w-4 h-4" />
+        </div>
+        <div className="hidden sm:block">
+          <span className="font-bold text-gray-900 text-sm tracking-tight block leading-tight">Correo</span>
+          <span className="text-[10px] text-gray-400 block">Gmail Integrado</span>
+        </div>
       </div>
 
       {/* Middle: Gmail-style Search Bar */}
