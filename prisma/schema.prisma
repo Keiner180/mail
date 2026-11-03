@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String               @id @default(cuid())
+  name           String
+  lastName       String
+  email          String               @unique
+  passwordHash   String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  sessions       Session[]
+  passwordResets PasswordResetToken[]
+  accounts       ConnectedAccount[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model ConnectedAccount {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        String    @default("google")
+  email           String
+  name            String?
+  avatar          String?
+  accessTokenEnc  String
+  refreshTokenEnc String
+  scope           String?
+  tokenExpiresAt  DateTime?
+  status          String    @default("active") // active, expired, revoked, error
+  lastSyncAt      DateTime?
+  isDefault       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, email])
+  @@index([userId])
+  @@map("connected_accounts")
+}
