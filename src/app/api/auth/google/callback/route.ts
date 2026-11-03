@@ -42,6 +42,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/mail?error=${encodeURIComponent("No se pudo obtener el token de acceso de Google")}`);
     }
 
+    // Verify user granted Gmail permissions
+    const grantedScope = tokens.scope || "";
+    const hasGmailScope = grantedScope.includes("gmail") || grantedScope.includes("mail.google.com");
+    if (!hasGmailScope) {
+      return NextResponse.redirect(
+        `${origin}/mail?error=${encodeURIComponent(
+          "⚠️ No marcaste la casilla de permisos de Gmail en la pantalla de Google. Por favor vuelve a vincular y asegúrate de MARCAR la casilla 'Ver, editar y redactar correos de Gmail' para poder cargar tu bandeja."
+        )}`
+      );
+    }
+
     // Fetch user profile from Google to get account email and avatar
     const googleProfile = await fetchGoogleUserProfile(tokens.access_token);
     const googleEmail = googleProfile.email;

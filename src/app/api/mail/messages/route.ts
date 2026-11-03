@@ -67,7 +67,17 @@ export async function GET(req: NextRequest) {
   } catch (error: unknown) {
     console.error("Error listing messages:", error);
     const msg = error instanceof Error ? error.message : "Error al obtener mensajes";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const isPermissionError = msg.includes("Insufficient Permission") || msg.includes("403");
+
+    return NextResponse.json(
+      {
+        error: isPermissionError
+          ? "Permisos insuficientes: Al vincular tu cuenta con Google, no marcaste la casilla que autoriza el acceso a Gmail. Por favor reconecta y marca la casilla correspondiente."
+          : msg,
+        insufficientPermissions: isPermissionError,
+      },
+      { status: isPermissionError ? 403 : 500 }
+    );
   }
 }
 
