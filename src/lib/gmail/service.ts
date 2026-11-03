@@ -568,3 +568,4 @@ export async function getAccountProfile(account: ConnectedAccount) {
 
   return res.data;
 }
+

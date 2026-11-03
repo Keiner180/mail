@@ -91,7 +91,7 @@ Para conectar cuentas de Gmail, se requiere registrar la aplicación en Google C
    - Tipo de aplicación: **Aplicación web**.
    - Nombre: `Cliente Jabvox Mail Web`.
    - **URI de redireccionamiento autorizados**:
-     - `http://localhost:3000/api/auth/google/callback` (o tu dominio de producción).
+     - `http://localhost:3005/api/auth/google/callback` (o tu dominio de producción).
    - Haz clic en *Crear* y copia el **ID de cliente** y el **Secreto de cliente**.
 
 ---
@@ -115,15 +115,15 @@ POSTGRES_PASSWORD="jabvox_secret"
 DB_PORT="5433"
 
 # Aplicación
-PORT="3000"
-NEXTAUTH_URL="http://localhost:3000"
+PORT="3005"
+NEXTAUTH_URL="http://localhost:3005"
 APP_SECRET="tu-clave-secreta-hex-de-64-caracteres"
 ENCRYPTION_KEY="tu-clave-de-cifrado-aes256-hex-de-64-caracteres"
 
 # Google OAuth 2.0
 GOOGLE_CLIENT_ID="tu-google-client-id.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="tu-google-client-secret"
-GOOGLE_REDIRECT_URI="http://localhost:3000/api/auth/google/callback"
+GOOGLE_REDIRECT_URI="http://localhost:3005/api/auth/google/callback"
 
 # Servidor SMTP (Opcional, para envío de restablecimiento de contraseña)
 SMTP_HOST="localhost"
@@ -153,7 +153,7 @@ docker compose ps
 docker compose logs -f web
 ```
 
-La aplicación estará accesible en: `http://localhost:3000`
+La aplicación estará accesible en: `http://localhost:3005`
 
 ---
 
@@ -177,7 +177,7 @@ La aplicación estará accesible en: `http://localhost:3000`
    ```
 
 4. Abrir en el navegador:
-   `http://localhost:3000`
+   `http://localhost:3005`
 
 ---
 
@@ -206,3 +206,4 @@ bun run test-e2e.ts
 - **Protección CSRF**: Los flujos OAuth 2.0 y restablecimiento de contraseña utilizan estados criptográficos firmados con expiración.
 - **Sanitización HTML**: Los correos entrantes se limpian con DOMPurify antes de su renderizado, bloqueando etiquetas `<script>`, `<iframe>` u objetos potencialmente maliciosos.
 - **Descarga segura de adjuntos**: Servidos mediante streaming en el backend con cabeceras `Content-Disposition: attachment` y tipos MIME validados.
+

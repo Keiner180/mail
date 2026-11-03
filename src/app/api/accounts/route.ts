@@ -30,3 +30,4 @@ export async function GET() {
     return NextResponse.json({ error: "Error al listar cuentas" }, { status: 500 });
   }
 }
+

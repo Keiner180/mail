@@ -12,7 +12,7 @@ const SCOPES = [
 export function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/google/callback";
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3005/api/auth/google/callback";
 
   if (!clientId || !clientSecret) {
     throw new Error("Credenciales de Google OAuth no configuradas en variables de entorno.");
@@ -115,3 +115,4 @@ export async function getAuthenticatedClient(account: ConnectedAccount) {
 
   return oauth2Client;
 }
+

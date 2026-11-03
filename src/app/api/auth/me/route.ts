@@ -33,3 +33,4 @@ export async function GET() {
     return NextResponse.json({ error: "Error al obtener usuario" }, { status: 500 });
   }
 }
+

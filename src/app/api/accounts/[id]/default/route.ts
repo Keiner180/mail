@@ -43,3 +43,4 @@ export async function POST(
     return NextResponse.json({ error: "Error al actualizar cuenta predeterminada" }, { status: 500 });
   }
 }
+

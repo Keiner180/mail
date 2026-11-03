@@ -74,3 +74,4 @@ model ConnectedAccount {
   @@index([userId])
   @@map("connected_accounts")
 }
+

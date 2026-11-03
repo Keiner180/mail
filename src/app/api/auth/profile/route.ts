@@ -81,3 +81,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Error al actualizar perfil" }, { status: 500 });
   }
 }
+

@@ -50,3 +50,4 @@ export async function DELETE(
     return NextResponse.json({ error: "Error al desvincular cuenta" }, { status: 500 });
   }
 }
+

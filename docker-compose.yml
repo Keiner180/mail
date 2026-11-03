@@ -29,11 +29,11 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3005}:3005"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-jabvox}:${POSTGRES_PASSWORD:-jabvox_secret}@db:5432/${POSTGRES_DB:-jabvox_mail}?schema=public
       - NODE_ENV=production
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3005}
       - APP_SECRET=${APP_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -47,3 +47,4 @@ services:
 
 volumes:
   pgdata:
+

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const origin = req.nextUrl.origin || process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const origin = req.nextUrl.origin || process.env.NEXTAUTH_URL || "http://localhost:3005";
       const resetUrl = `${origin}/auth/reset-password?token=${rawToken}`;
 
       await sendPasswordResetEmail(user.email, user.name, resetUrl);
@@ -64,3 +64,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

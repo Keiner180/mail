@@ -5,7 +5,7 @@ import { encryptText } from "@/lib/crypto";
 import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
-  const origin = req.nextUrl.origin || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const origin = req.nextUrl.origin || process.env.NEXTAUTH_URL || "http://localhost:3005";
 
   try {
     const searchParams = req.nextUrl.searchParams;
@@ -109,3 +109,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/mail?error=${encodeURIComponent(msg)}`);
   }
 }
+
