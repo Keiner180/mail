@@ -15,6 +15,7 @@ import {
   Circle,
   Menu,
   X,
+  Sparkles,
 } from "lucide-react";
 
 interface UserInfo {
@@ -54,7 +55,8 @@ export default function JabvoxAppLayout({
       title: "Correo",
       href: "/mail",
       icon: Mail,
-      badge: "Gmail",
+      badge: "Gmail API",
+      badgeColor: "bg-emerald-100 text-[#15605A] border-emerald-200",
       active: pathname.startsWith("/mail"),
     },
     {
@@ -63,6 +65,7 @@ export default function JabvoxAppLayout({
       href: "/users",
       icon: Users,
       badge: null,
+      badgeColor: "",
       active: pathname.startsWith("/users"),
     },
     {
@@ -71,6 +74,7 @@ export default function JabvoxAppLayout({
       href: "/roles",
       icon: ShieldCheck,
       badge: null,
+      badgeColor: "",
       active: pathname.startsWith("/roles"),
     },
     {
@@ -78,17 +82,18 @@ export default function JabvoxAppLayout({
       title: "Chat IA",
       href: "/ia",
       icon: Bot,
-      badge: null,
+      badge: "IA",
+      badgeColor: "bg-purple-100 text-purple-700 border-purple-200",
       active: pathname.startsWith("/ia"),
     },
   ];
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#f6f9f9] text-[#1d3a35]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#f6f9f9] text-[#1d3a35] font-sans antialiased">
       {/* Mobile Drawer Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-xs"
+          className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-xs transition-opacity duration-200"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -96,11 +101,11 @@ export default function JabvoxAppLayout({
       {/* Jabvox Main Navigation Sidebar */}
       <aside
         style={{
-          background: "linear-gradient(180deg, #DAEBDB, #A8D5D3)",
-          borderColor: "#8FC4C2",
+          background: "linear-gradient(180deg, #DAEBDB 0%, #BFE0DE 50%, #A8D5D3 100%)",
+          borderColor: "rgba(143, 196, 194, 0.75)",
         }}
-        className={`h-full border-r flex flex-col justify-between transition-all duration-200 z-50 flex-shrink-0 select-none ${
-          isCollapsed ? "w-[68px]" : "w-[240px]"
+        className={`h-full border-r flex flex-col justify-between transition-all duration-300 z-50 flex-shrink-0 select-none shadow-sm ${
+          isCollapsed ? "w-[72px]" : "w-[245px]"
         } ${
           mobileMenuOpen
             ? "fixed inset-y-0 left-0 w-[260px] translate-x-0 shadow-2xl md:relative md:shadow-none"
@@ -108,24 +113,27 @@ export default function JabvoxAppLayout({
         }`}
       >
         {/* Top Header */}
-        <div className="p-3 space-y-3">
+        <div className="p-3.5 space-y-3">
           {/* Brand header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <div
-                style={{ backgroundColor: "#15605A" }}
-                className="w-8 h-8 rounded-xl text-white font-black text-base flex items-center justify-center flex-shrink-0 shadow-xs"
+                style={{
+                  background: "linear-gradient(135deg, #15605A 0%, #0d423e 100%)",
+                }}
+                className="w-8 h-8 rounded-xl text-white font-extrabold text-base flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-white/50"
               >
                 J
               </div>
               {!isCollapsed && (
-                <div className="min-w-0">
+                <div className="min-w-0 flex items-center gap-1.5">
                   <span
                     style={{ color: "#15605A" }}
-                    className="font-bold text-base tracking-tight truncate block"
+                    className="font-extrabold text-base tracking-tight truncate block"
                   >
                     Jabvox
                   </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
               )}
             </div>
@@ -133,7 +141,7 @@ export default function JabvoxAppLayout({
             {/* Collapse toggle (desktop) */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden md:flex w-7 h-7 rounded-lg items-center justify-center text-[#2d5a52] hover:bg-white/50 transition-colors"
+              className="hidden md:flex w-7 h-7 rounded-lg items-center justify-center text-[#2d5a52] hover:bg-white/60 transition-all active:scale-95 shadow-2xs"
               title={isCollapsed ? "Expandir menú" : "Contraer menú"}
             >
               {isCollapsed ? (
@@ -152,20 +160,23 @@ export default function JabvoxAppLayout({
             </button>
           </div>
 
-          {/* Account selector pill */}
+          {/* Account selector card */}
           {!isCollapsed && (
-            <div className="p-2 rounded-xl bg-white/60 border border-[#8FC4C2]/60 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-white text-[#15605A] font-bold text-[10px] flex items-center justify-center border border-[#8FC4C2]/50 shadow-2xs">
+            <div className="p-2.5 rounded-2xl bg-white/70 backdrop-blur-xs border border-[#8FC4C2]/70 text-xs shadow-2xs hover:bg-white/90 transition-all">
+              <div className="flex items-center gap-2.5">
+                <div
+                  style={{ color: "#15605A" }}
+                  className="w-7 h-7 rounded-lg bg-white font-bold text-[11px] flex items-center justify-center border border-[#8FC4C2]/50 shadow-xs flex-shrink-0"
+                >
                   TL
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="font-semibold text-[#15605A] block truncate text-[11px]">
+                  <span className="font-bold text-[#15605A] block truncate text-xs">
                     Tecnologias Lan
                   </span>
                   <span className="text-[10px] text-[#2d5a52]/80 flex items-center gap-1">
                     <Circle className="w-1.5 h-1.5 fill-emerald-500 text-emerald-500" />
-                    Espacio de trabajo
+                    Espacio de trabajo activo
                   </span>
                 </div>
               </div>
@@ -173,9 +184,9 @@ export default function JabvoxAppLayout({
           )}
 
           {/* Main Navigation Modules */}
-          <nav className="space-y-1 pt-2">
+          <nav className="space-y-1 pt-1">
             {!isCollapsed && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#15605A]/80 px-2.5 block mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#15605A]/75 px-3 block mb-1.5">
                 Módulos
               </span>
             )}
@@ -188,21 +199,21 @@ export default function JabvoxAppLayout({
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   title={item.title}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all relative group ${
                     item.active
-                      ? "bg-white/85 text-[#15605A] shadow-xs font-bold"
-                      : "text-[#2d5a52] hover:bg-white/40"
-                  } ${isCollapsed ? "justify-center px-0" : ""}`}
+                      ? "bg-white/95 text-[#15605A] shadow-xs font-bold"
+                      : "text-[#2d5a52] hover:bg-white/50 hover:text-[#15605A]"
+                  } ${isCollapsed ? "justify-center px-0 py-3" : ""}`}
                 >
                   {item.active && (
                     <div
                       style={{ backgroundColor: "#15605A" }}
-                      className="absolute left-0 top-2 bottom-2 w-1 rounded-r-md"
+                      className="absolute left-0 top-2 bottom-2 w-1 rounded-r-md shadow-xs"
                     />
                   )}
 
                   <Icon
-                    className={`w-4 h-4 flex-shrink-0 ${
+                    className={`w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110 ${
                       item.active ? "text-[#15605A]" : "text-[#2d5a52]"
                     }`}
                   />
@@ -211,7 +222,9 @@ export default function JabvoxAppLayout({
                     <div className="flex-1 flex items-center justify-between min-w-0">
                       <span className="truncate">{item.title}</span>
                       {item.badge && (
-                        <span className="px-1.5 py-0.5 rounded-md bg-[#15605A]/15 text-[#15605A] text-[9px] font-bold">
+                        <span
+                          className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold border ${item.badgeColor}`}
+                        >
                           {item.badge}
                         </span>
                       )}
@@ -223,8 +236,8 @@ export default function JabvoxAppLayout({
           </nav>
         </div>
 
-        {/* User Foot */}
-        <div className="p-3 border-t border-[#8FC4C2]/60 bg-white/20">
+        {/* User Footer */}
+        <div className="p-3 border-t border-[#8FC4C2]/60 bg-white/30 backdrop-blur-xs">
           <div
             className={`flex items-center gap-2.5 ${
               isCollapsed ? "justify-center" : "justify-between"
@@ -232,10 +245,15 @@ export default function JabvoxAppLayout({
           >
             <Link
               href="/profile"
-              className="flex items-center gap-2 min-w-0 hover:opacity-85 transition-opacity"
+              className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition-opacity flex-1"
               title="Mi perfil y ajustes"
             >
-              <div className="w-8 h-8 rounded-xl bg-[#15605A] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #15605A 0%, #1e403b 100%)",
+                }}
+                className="w-8 h-8 rounded-xl text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-xs ring-1 ring-white/60"
+              >
                 {user ? user.name[0]?.toUpperCase() : "U"}
               </div>
 
@@ -254,7 +272,7 @@ export default function JabvoxAppLayout({
             {!isCollapsed && (
               <button
                 onClick={handleLogout}
-                className="p-1.5 rounded-lg text-[#2d5a52] hover:text-red-700 hover:bg-white/50 transition-colors"
+                className="p-1.5 rounded-lg text-[#2d5a52] hover:text-red-700 hover:bg-white/60 transition-colors"
                 title="Cerrar sesión"
               >
                 <LogOut className="w-4 h-4" />
@@ -264,10 +282,10 @@ export default function JabvoxAppLayout({
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main Content Body */}
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         {/* Mobile top strip with hamburger button */}
-        <div className="md:hidden h-12 bg-white border-b border-gray-200 px-3 flex items-center justify-between flex-shrink-0">
+        <div className="md:hidden h-12 bg-white/95 backdrop-blur-md border-b border-gray-200 px-3 flex items-center justify-between flex-shrink-0 z-30">
           <button
             onClick={() => setMobileMenuOpen(true)}
             className="p-1.5 rounded-lg text-gray-700 hover:bg-gray-100"
@@ -277,7 +295,7 @@ export default function JabvoxAppLayout({
           <div className="flex items-center gap-2">
             <div
               style={{ backgroundColor: "#15605A" }}
-              className="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center"
+              className="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center shadow-xs"
             >
               J
             </div>
@@ -296,4 +314,3 @@ export default function JabvoxAppLayout({
     </div>
   );
 }
-

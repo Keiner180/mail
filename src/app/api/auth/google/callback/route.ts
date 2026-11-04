@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { exchangeCodeForTokens, fetchGoogleUserProfile } from "@/lib/gmail/oauth";
 import { encryptText } from "@/lib/crypto";
+import { verifySignedOAuthState } from "@/lib/security/csrf";
 import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
@@ -22,18 +23,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/mail?error=${encodeURIComponent("Parámetros de autorización inválidos")}`);
     }
 
-    // Decode and validate state
-    let stateData: { userId: string; ts: number };
-    try {
-      const decodedState = Buffer.from(state, "base64url").toString("utf-8");
-      stateData = JSON.parse(decodedState);
-    } catch {
-      return NextResponse.redirect(`${origin}/mail?error=${encodeURIComponent("Estado de autorización inválido")}`);
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent("Sesión expirada durante la autorización")}`);
     }
 
-    const user = await getSessionUser();
-    if (!user || user.id !== stateData.userId) {
-      return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent("Sesión expirada durante la autorización")}`);
+    // Verify HMAC-signed OAuth state and prevent CSRF
+    const stateVerification = verifySignedOAuthState(state, user.id);
+    if (!stateVerification.valid) {
+      return NextResponse.redirect(
+        `${origin}/mail?error=${encodeURIComponent(stateVerification.error || "Estado de autorización inválido")}`
+      );
     }
 
     // Exchange authorization code for tokens

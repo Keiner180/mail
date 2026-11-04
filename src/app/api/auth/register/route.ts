@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { hashPassword, createSession, setSessionCookie } from "@/lib/auth";
+import { checkRateLimit, RateLimitPresets } from "@/lib/security/rate-limiter";
 
 const RegisterSchema = z
   .object({
@@ -18,6 +19,18 @@ const RegisterSchema = z
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+    const rateLimit = checkRateLimit(`register:${ip}`, RateLimitPresets.AUTH_REGISTER);
+
+    if (!rateLimit.allowed) {
+      const waitMinutes = Math.ceil(rateLimit.resetMs / 60000);
+      return NextResponse.json(
+        {
+          error: `Has superado el límite de registros. Por favor espera ${waitMinutes} minutos antes de intentar de nuevo.`,
+        },
+        { status: 429 }
+      );
+    }
     const body = await req.json();
     const parsed = RegisterSchema.safeParse(body);
 
@@ -62,7 +75,6 @@ export async function POST(req: NextRequest) {
 
     // Auto login
     const userAgent = req.headers.get("user-agent") || undefined;
-    const ip = req.headers.get("x-forwarded-for") || undefined;
     const rawToken = await createSession(user.id, userAgent, ip);
     await setSessionCookie(rawToken);
 

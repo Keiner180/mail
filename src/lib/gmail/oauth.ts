@@ -2,6 +2,7 @@ import { google } from "googleapis";
 import { ConnectedAccount } from "@prisma/client";
 import { db } from "../db";
 import { encryptText, decryptText } from "../crypto";
+import { createSignedOAuthState } from "../security/csrf";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
@@ -25,12 +26,8 @@ export function getOAuth2Client() {
 export function generateAuthUrl(userId: string): string {
   const oauth2Client = getOAuth2Client();
 
-  // State encodes userId and a timestamp to prevent CSRF
-  const statePayload = JSON.stringify({
-    userId,
-    ts: Date.now(),
-  });
-  const state = Buffer.from(statePayload).toString("base64url");
+  // Cryptographically signed HMAC-SHA256 state token
+  const state = createSignedOAuthState(userId);
 
   return oauth2Client.generateAuthUrl({
     access_type: "offline",

@@ -1,7 +1,7 @@
 import { google, gmail_v1 } from "googleapis";
 import { ConnectedAccount } from "@prisma/client";
-import DOMPurify from "isomorphic-dompurify";
 import { getAuthenticatedClient } from "./oauth";
+import { sanitizeHtmlEmail } from "../security/sanitizer";
 
 export interface EmailHeader {
   name: string;
@@ -259,13 +259,8 @@ export async function getMessage(account: ConnectedAccount, messageId: string): 
 
   const bodyData = extractBody(data.payload);
 
-  // Sanitize HTML body for safe rendering
-  const sanitizedHtml = bodyData.html
-    ? DOMPurify.sanitize(bodyData.html, {
-        ADD_ATTR: ["target"],
-        FORBID_TAGS: ["script", "iframe", "object", "embed", "applet"],
-      })
-    : undefined;
+  // Sanitize HTML body using strict DOMPurify rules
+  const sanitizedHtml = bodyData.html ? sanitizeHtmlEmail(bodyData.html) : undefined;
 
   return {
     id: data.id || messageId,
