@@ -8,6 +8,11 @@ import {
   untrashMessage,
   deleteMessage,
 } from "@/lib/gmail/service";
+import {
+  getOutlookMessage,
+  modifyOutlookMessage,
+  deleteOutlookMessage,
+} from "@/lib/outlook/service";
 
 export async function GET(
   req: NextRequest,
@@ -38,13 +43,22 @@ export async function GET(
       return NextResponse.json({ error: "Cuenta no encontrada" }, { status: 404 });
     }
 
-    const message = await getMessage(account, messageId);
+    const isMicrosoft = account.provider === "microsoft" || account.provider === "outlook";
+    const message = isMicrosoft
+      ? await getOutlookMessage(account, messageId)
+      : await getMessage(account, messageId);
 
     // Auto mark as read if it was unread
     if (message.isUnread) {
-      modifyMessage(account, messageId, { removeLabelIds: ["UNREAD"] }).catch((err) =>
-        console.error("Failed to auto-mark as read:", err)
-      );
+      if (isMicrosoft) {
+        modifyOutlookMessage(account, messageId, { isRead: true }).catch((err) =>
+          console.error("Failed to auto-mark Outlook message as read:", err)
+        );
+      } else {
+        modifyMessage(account, messageId, { removeLabelIds: ["UNREAD"] }).catch((err) =>
+          console.error("Failed to auto-mark Gmail message as read:", err)
+        );
+      }
       message.isUnread = false;
       message.labels = message.labels.filter((l) => l !== "UNREAD");
     }
@@ -79,36 +93,60 @@ export async function PATCH(
       return NextResponse.json({ error: "Cuenta no encontrada" }, { status: 404 });
     }
 
-    switch (action) {
-      case "markRead":
-        await modifyMessage(account, messageId, { removeLabelIds: ["UNREAD"] });
-        break;
-      case "markUnread":
-        await modifyMessage(account, messageId, { addLabelIds: ["UNREAD"] });
-        break;
-      case "star":
-        await modifyMessage(account, messageId, { addLabelIds: ["STARRED"] });
-        break;
-      case "unstar":
-        await modifyMessage(account, messageId, { removeLabelIds: ["STARRED"] });
-        break;
-      case "archive":
-        await modifyMessage(account, messageId, { removeLabelIds: ["INBOX"] });
-        break;
-      case "spam":
-        await modifyMessage(account, messageId, {
-          addLabelIds: ["SPAM"],
-          removeLabelIds: ["INBOX"],
-        });
-        break;
-      case "trash":
-        await trashMessage(account, messageId);
-        break;
-      case "untrash":
-        await untrashMessage(account, messageId);
-        break;
-      default:
-        return NextResponse.json({ error: "Acción no reconocida" }, { status: 400 });
+    const isMicrosoft = account.provider === "microsoft" || account.provider === "outlook";
+
+    if (isMicrosoft) {
+      switch (action) {
+        case "markRead":
+          await modifyOutlookMessage(account, messageId, { isRead: true });
+          break;
+        case "markUnread":
+          await modifyOutlookMessage(account, messageId, { isRead: false });
+          break;
+        case "star":
+          await modifyOutlookMessage(account, messageId, { isStarred: true });
+          break;
+        case "unstar":
+          await modifyOutlookMessage(account, messageId, { isStarred: false });
+          break;
+        case "trash":
+          await deleteOutlookMessage(account, messageId);
+          break;
+        default:
+          break;
+      }
+    } else {
+      switch (action) {
+        case "markRead":
+          await modifyMessage(account, messageId, { removeLabelIds: ["UNREAD"] });
+          break;
+        case "markUnread":
+          await modifyMessage(account, messageId, { addLabelIds: ["UNREAD"] });
+          break;
+        case "star":
+          await modifyMessage(account, messageId, { addLabelIds: ["STARRED"] });
+          break;
+        case "unstar":
+          await modifyMessage(account, messageId, { removeLabelIds: ["STARRED"] });
+          break;
+        case "archive":
+          await modifyMessage(account, messageId, { removeLabelIds: ["INBOX"] });
+          break;
+        case "spam":
+          await modifyMessage(account, messageId, {
+            addLabelIds: ["SPAM"],
+            removeLabelIds: ["INBOX"],
+          });
+          break;
+        case "trash":
+          await trashMessage(account, messageId);
+          break;
+        case "untrash":
+          await untrashMessage(account, messageId);
+          break;
+        default:
+          return NextResponse.json({ error: "Acción no reconocida" }, { status: 400 });
+      }
     }
 
     return NextResponse.json({ success: true });
@@ -141,10 +179,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Cuenta no encontrada" }, { status: 404 });
     }
 
-    if (permanent) {
-      await deleteMessage(account, messageId);
+    const isMicrosoft = account.provider === "microsoft" || account.provider === "outlook";
+
+    if (isMicrosoft) {
+      await deleteOutlookMessage(account, messageId);
     } else {
-      await trashMessage(account, messageId);
+      if (permanent) {
+        await deleteMessage(account, messageId);
+      } else {
+        await trashMessage(account, messageId);
+      }
     }
 
     return NextResponse.json({ success: true });
@@ -154,4 +198,3 @@ export async function DELETE(
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-

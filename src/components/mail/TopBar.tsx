@@ -18,15 +18,17 @@ import {
   ShieldCheck,
   ShieldAlert,
   Sparkles,
+  Calendar,
 } from "lucide-react";
 
-interface Account {
+export interface Account {
   id: string;
   email: string;
   name: string | null;
   avatar: string | null;
   status: string;
   isDefault: boolean;
+  provider?: string;
 }
 
 interface UserInfo {
@@ -47,6 +49,7 @@ interface TopBarProps {
   onSearch: (query: string) => void;
   onToggleSidebar?: () => void;
   onConnectGmail: () => void;
+  onConnectOutlook?: () => void;
 }
 
 export default function TopBar({
@@ -60,6 +63,7 @@ export default function TopBar({
   onSearch,
   onToggleSidebar,
   onConnectGmail,
+  onConnectOutlook,
 }: TopBarProps) {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState(searchQuery);
@@ -119,6 +123,30 @@ export default function TopBar({
     }
   };
 
+  const handleConnectMicrosoft = async () => {
+    if (onConnectOutlook) {
+      onConnectOutlook();
+      return;
+    }
+    try {
+      const res = await fetch("/api/auth/microsoft/url");
+      const data = await res.json();
+      if (data.configured && data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(
+          data.error ||
+            "Para conectar cuentas de Outlook / Hotmail, configura MICROSOFT_CLIENT_ID y MICROSOFT_CLIENT_SECRET en .env."
+        );
+      }
+    } catch {
+      alert("Error al conectar con Microsoft OAuth");
+    }
+  };
+
+  const isMicrosoftAccount = (acc: Account | null) =>
+    acc?.provider === "microsoft" || acc?.provider === "outlook";
+
   return (
     <header className="h-16 bg-white/95 backdrop-blur-md border-b border-gray-200/80 px-4 md:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 select-none shadow-2xs">
       {/* Left: Module title with Jabvox style badge */}
@@ -143,10 +171,14 @@ export default function TopBar({
             </span>
             <span className="px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Gmail API
+              {isMicrosoftAccount(activeAccount) ? "Outlook Graph" : "Gmail API"}
             </span>
           </div>
-          <span className="text-[10px] text-gray-400 block font-medium">Bandeja oficial integrada</span>
+          <span className="text-[10px] text-gray-400 block font-medium">
+            {isMicrosoftAccount(activeAccount)
+              ? "Microsoft 365 / Outlook Oficial"
+              : "Google Workspace Oficial"}
+          </span>
         </div>
       </div>
 
@@ -157,7 +189,7 @@ export default function TopBar({
             <button
               type="submit"
               className="p-2.5 pl-3.5 text-gray-400 hover:text-[#15605A] transition-colors"
-              title="Buscar en Gmail"
+              title="Buscar correos"
             >
               <Search className="w-4.5 h-4.5" />
             </button>
@@ -169,7 +201,7 @@ export default function TopBar({
               placeholder="Buscar por remitente, asunto o palabras (ej: de:juan, tiene:adjunto)..."
               className="w-full bg-transparent py-2.5 pr-20 text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-none font-medium"
             />
-            
+
             {/* Shortcut pill or Clear button */}
             <div className="absolute right-3 flex items-center gap-1">
               {searchInput ? (
@@ -191,8 +223,19 @@ export default function TopBar({
         </form>
       </div>
 
-      {/* Right: Refresh, Account Switcher & Security Status */}
+      {/* Right: Quick Calendar Link, Refresh, Account Switcher & User Profile */}
       <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Quick Link to Google Calendar */}
+        <Link
+          href="/calendar"
+          className="p-2 rounded-xl hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-all border border-blue-100 shadow-2xs flex items-center gap-1.5"
+          title="Abrir Google Calendar"
+        >
+          <Calendar className="w-4 h-4" />
+          <span className="hidden xl:inline text-xs font-bold">Calendario</span>
+        </Link>
+
+        {/* Sync Button */}
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
@@ -208,7 +251,7 @@ export default function TopBar({
             <button
               onClick={() => setShowAccountMenu(!showAccountMenu)}
               className="flex items-center gap-2 p-1.5 pl-2 pr-3 rounded-2xl hover:bg-gray-100 border border-gray-200/80 bg-white shadow-2xs transition-all text-left group"
-              title="Cuentas de Gmail vinculadas"
+              title="Cuentas conectadas"
             >
               {activeAccount.avatar ? (
                 <img
@@ -218,10 +261,11 @@ export default function TopBar({
                 />
               ) : (
                 <div
-                  style={{ backgroundColor: "#15605A" }}
-                  className="w-7 h-7 rounded-xl text-white font-bold text-xs flex items-center justify-center shadow-2xs"
+                  className={`w-7 h-7 rounded-xl text-white font-bold text-xs flex items-center justify-center shadow-2xs ${
+                    isMicrosoftAccount(activeAccount) ? "bg-[#0078d4]" : "bg-[#15605A]"
+                  }`}
                 >
-                  {activeAccount.email[0].toUpperCase()}
+                  {isMicrosoftAccount(activeAccount) ? "O" : activeAccount.email[0].toUpperCase()}
                 </div>
               )}
               <div className="hidden lg:block max-w-[130px] truncate text-xs">
@@ -235,14 +279,23 @@ export default function TopBar({
               <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-700 transition-colors" />
             </button>
           ) : (
-            <button
-              onClick={onConnectGmail}
-              style={{ backgroundColor: "#15605A" }}
-              className="px-3.5 py-2 rounded-2xl hover:opacity-90 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Conectar Gmail</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onConnectGmail}
+                style={{ backgroundColor: "#15605A" }}
+                className="px-3.5 py-2 rounded-2xl hover:opacity-90 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Gmail</span>
+              </button>
+              <button
+                onClick={handleConnectMicrosoft}
+                className="px-3.5 py-2 rounded-2xl bg-[#0078d4] hover:bg-[#0060aa] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Outlook</span>
+              </button>
+            </div>
           )}
 
           {/* Account Dropdown Menu */}
@@ -250,9 +303,9 @@ export default function TopBar({
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-3xl shadow-2xl border border-gray-200 p-3.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="flex items-center justify-between px-2 pb-2 border-b border-gray-100 mb-2">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  Cuentas de Gmail Vinculadas
+                  Cuentas Conectadas
                 </span>
-                <span className="px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-bold">
+                <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[9px] font-bold">
                   {accounts.length} {accounts.length === 1 ? "cuenta" : "cuentas"}
                 </span>
               </div>
@@ -260,6 +313,8 @@ export default function TopBar({
               <div className="space-y-1 my-1 max-h-56 overflow-y-auto">
                 {accounts.map((acc) => {
                   const isCurrent = acc.id === activeAccount?.id;
+                  const isMs = acc.provider === "microsoft" || acc.provider === "outlook";
+
                   return (
                     <button
                       key={acc.id}
@@ -269,7 +324,7 @@ export default function TopBar({
                       }}
                       className={`w-full flex items-center gap-3 p-2.5 rounded-2xl text-left transition-all ${
                         isCurrent
-                          ? "bg-emerald-50/80 text-[#15605A] font-bold shadow-2xs"
+                          ? "bg-slate-100 text-slate-900 font-bold shadow-2xs"
                           : "hover:bg-gray-50 text-gray-700"
                       }`}
                     >
@@ -281,16 +336,24 @@ export default function TopBar({
                         />
                       ) : (
                         <div
-                          style={{ backgroundColor: "#15605A" }}
-                          className="w-9 h-9 rounded-xl text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs"
+                          className={`w-9 h-9 rounded-xl text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs ${
+                            isMs ? "bg-[#0078d4]" : "bg-[#15605A]"
+                          }`}
                         >
-                          {acc.email[0].toUpperCase()}
+                          {isMs ? "MS" : acc.email[0].toUpperCase()}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-bold truncate block">
                             {acc.name || acc.email}
+                          </span>
+                          <span
+                            className={`text-[9px] px-1 py-0.1 rounded font-semibold ${
+                              isMs ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"
+                            }`}
+                          >
+                            {isMs ? "Outlook" : "Gmail"}
                           </span>
                           {acc.status === "revoked" && (
                             <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
@@ -304,7 +367,8 @@ export default function TopBar({
                 })}
               </div>
 
-              <div className="pt-2 mt-2 border-t border-gray-100">
+              {/* Add Account Options */}
+              <div className="pt-2 mt-2 border-t border-gray-100 space-y-1">
                 <button
                   onClick={() => {
                     setShowAccountMenu(false);
@@ -313,7 +377,18 @@ export default function TopBar({
                   className="w-full flex items-center gap-2 p-2 rounded-xl text-left text-xs font-bold text-[#15605A] hover:bg-emerald-50/60 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Vincular otra cuenta de Gmail</span>
+                  <span>Vincular cuenta de Gmail (Google)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowAccountMenu(false);
+                    handleConnectMicrosoft();
+                  }}
+                  className="w-full flex items-center gap-2 p-2 rounded-xl text-left text-xs font-bold text-[#0078d4] hover:bg-blue-50/60 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Vincular cuenta de Outlook / Hotmail</span>
                 </button>
               </div>
             </div>
@@ -344,6 +419,15 @@ export default function TopBar({
               </div>
 
               <div className="space-y-1">
+                <Link
+                  href="/calendar"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <span>Google Calendar</span>
+                </Link>
+
                 <Link
                   href="/profile"
                   onClick={() => setShowUserMenu(false)}

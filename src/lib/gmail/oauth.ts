@@ -9,6 +9,8 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/gmail.modify",
   "https://mail.google.com/",
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/calendar.events",
 ];
 
 export function getOAuth2Client() {

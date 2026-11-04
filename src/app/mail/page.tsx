@@ -67,12 +67,14 @@ function MailDashboardContent() {
   useEffect(() => {
     const connected = searchParams.get("connected");
     const email = searchParams.get("email");
+    const provider = searchParams.get("provider");
     const error = searchParams.get("error");
 
     if (connected === "true" && email) {
+      const providerName = provider === "outlook" ? "Outlook / Hotmail" : "Google";
       setBanner({
         type: "success",
-        message: `¡Cuenta ${email} vinculada exitosamente con Google!`,
+        message: `¡Cuenta ${email} vinculada exitosamente con ${providerName}!`,
       });
       router.replace("/mail");
     } else if (error) {
@@ -217,6 +219,28 @@ function MailDashboardContent() {
       setBanner({
         type: "error",
         message: "Error de red al conectar con Google",
+      });
+    }
+  };
+
+  const handleConnectMicrosoft = async () => {
+    try {
+      const res = await fetch("/api/auth/microsoft/url");
+      const data = await res.json();
+      if (data.configured && data.url) {
+        window.location.href = data.url;
+      } else {
+        setBanner({
+          type: "error",
+          message:
+            data.error ||
+            "Para conectar Outlook / Hotmail, configura MICROSOFT_CLIENT_ID y MICROSOFT_CLIENT_SECRET en .env.",
+        });
+      }
+    } catch {
+      setBanner({
+        type: "error",
+        message: "Error de red al conectar con Microsoft OAuth",
       });
     }
   };
@@ -453,6 +477,7 @@ function MailDashboardContent() {
           onSearch={handleSearch}
           onToggleSidebar={() => setIsMobileSidebarOpen(true)}
           onConnectGmail={handleConnectGmail}
+          onConnectOutlook={handleConnectMicrosoft}
         />
 
         {/* Notification Toast */}
@@ -502,6 +527,7 @@ function MailDashboardContent() {
               <ConnectWelcome
                 userName={user.name}
                 onConnect={handleConnectGmail}
+                onConnectMicrosoft={handleConnectMicrosoft}
                 loading={isRefreshing}
               />
             ) : selectedMessage ? (

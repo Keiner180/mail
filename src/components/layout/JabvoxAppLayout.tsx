@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Mail,
+  Calendar,
   Users,
   ShieldCheck,
   Bot,
@@ -55,9 +56,18 @@ export default function JabvoxAppLayout({
       title: "Correo",
       href: "/mail",
       icon: Mail,
-      badge: "Gmail API",
+      badge: "Gmail / Outlook",
       badgeColor: "bg-emerald-100 text-[#15605A] border-emerald-200",
       active: pathname.startsWith("/mail"),
+    },
+    {
+      id: "calendario",
+      title: "Calendario",
+      href: "/calendar",
+      icon: Calendar,
+      badge: "Google Calendar",
+      badgeColor: "bg-blue-100 text-blue-700 border-blue-200",
+      active: pathname.startsWith("/calendar"),
     },
     {
       id: "usuarios",

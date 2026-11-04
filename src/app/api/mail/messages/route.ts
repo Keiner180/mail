@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { listMessages } from "@/lib/gmail/service";
+import { listOutlookMessages } from "@/lib/outlook/service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -48,12 +49,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const result = await listMessages(account, {
-      folder,
-      q,
-      pageToken,
-      maxResults,
-    });
+    const isMicrosoft = account.provider === "microsoft" || account.provider === "outlook";
+    const result = isMicrosoft
+      ? await listOutlookMessages(account, {
+          folder,
+          q,
+          pageToken,
+          maxResults,
+        })
+      : await listMessages(account, {
+          folder,
+          q,
+          pageToken,
+          maxResults,
+        });
 
     return NextResponse.json({
       ...result,
@@ -62,6 +71,7 @@ export async function GET(req: NextRequest) {
         email: account.email,
         name: account.name,
         avatar: account.avatar,
+        provider: account.provider,
       },
     });
   } catch (error: unknown) {

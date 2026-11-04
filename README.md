@@ -1,6 +1,6 @@
-# Jabvox Mail — Aplicación Web de Gestión de Correos con Gmail API
+# Jabvox Mail & Calendar — Gestión de Correos (Gmail & Outlook) y Google Calendar
 
-Aplicación web independiente para gestionar cuentas de correo electrónico de Gmail mediante **Google OAuth 2.0** y **Gmail API**. Cuenta con sistema propio de autenticación, panel multi-cuenta, experiencia visual inspirada en Gmail (responsive, moderno y limpio), y persistencia en base de datos PostgreSQL con Docker Compose.
+Aplicación web independiente para gestionar cuentas de correo electrónico de **Gmail** y **Outlook / Hotmail** mediante **Google OAuth 2.0**, **Gmail API** y **Microsoft Graph API**, integrando además el módulo completo de **Google Calendar** con soporte para reuniones de Google Meet. Cuenta con sistema propio de autenticación, panel multi-cuenta, experiencia visual inspirada en Gmail (responsive, moderno y limpio), y persistencia en base de datos PostgreSQL con Docker Compose.
 
 ---
 

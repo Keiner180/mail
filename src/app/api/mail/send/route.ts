@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendMessage, OutgoingEmailPayload } from "@/lib/gmail/service";
+import { sendOutlookMail } from "@/lib/outlook/service";
 import { checkRateLimit, RateLimitPresets } from "@/lib/security/rate-limiter";
 import {
   sanitizeEmailHeader,
@@ -91,12 +92,35 @@ export async function POST(req: NextRequest) {
       references: references ? sanitizeEmailHeader(references) : undefined,
     };
 
-    const res = await sendMessage(account, payload);
+    const isMicrosoft = account.provider === "microsoft" || account.provider === "outlook";
+    let messageId: string | undefined;
+    let threadIdRes: string | undefined;
+
+    if (isMicrosoft) {
+      const res = await sendOutlookMail(account, {
+        to: sanitizedTo,
+        cc: sanitizedCc,
+        bcc: sanitizedBcc,
+        subject: sanitizedSubject,
+        bodyHtml: bodyHtml || "<p></p>",
+        attachments: sanitizedAttachments.map((a) => ({
+          filename: a.filename,
+          mimeType: a.mimeType,
+          contentBase64: a.contentBase64,
+          size: Math.round((a.contentBase64.length * 3) / 4),
+        })),
+      });
+      messageId = res.id;
+    } else {
+      const res = await sendMessage(account, payload);
+      messageId = res.id || undefined;
+      threadIdRes = res.threadId || undefined;
+    }
 
     return NextResponse.json({
       success: true,
-      messageId: res.id,
-      threadId: res.threadId,
+      messageId,
+      threadId: threadIdRes,
     });
   } catch (error: unknown) {
     console.error("Error sending message:", error);
