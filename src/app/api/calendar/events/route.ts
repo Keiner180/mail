@@ -63,8 +63,25 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("Error listing calendar events:", error);
+    const msg = error?.message || "";
+    const isApiDisabled = msg.includes("has not been used in project") || msg.includes("is disabled");
+
+    if (isApiDisabled) {
+      const match = msg.match(/https:\/\/[^\s]+/);
+      const activationUrl = match ? match[0] : "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com";
+
+      return NextResponse.json(
+        {
+          error: "La API de Google Calendar aún no está habilitada en tu proyecto de Google Cloud.",
+          apiDisabled: true,
+          activationUrl,
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
-      { error: error.message || "Error al obtener eventos de Google Calendar" },
+      { error: msg || "Error al obtener eventos de Google Calendar" },
       { status: 500 }
     );
   }

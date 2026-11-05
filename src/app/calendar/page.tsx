@@ -70,6 +70,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEventSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [apiActivationUrl, setApiActivationUrl] = useState<string | null>(null);
 
   // Calendar navigation state
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -128,12 +129,17 @@ export default function CalendarPage() {
           setError(
             "Para utilizar el Calendario, debes vincular una cuenta de Google en la sección de Correo o Perfil."
           );
+        } else if (data.apiDisabled) {
+          setError(data.error);
+          setApiActivationUrl(data.activationUrl);
         } else {
           setError(data.error || "No se pudieron sincronizar los eventos de Google Calendar.");
         }
         return;
       }
 
+      setError(null);
+      setApiActivationUrl(null);
       setEvents(data.events || []);
       setAccount(data.account || null);
     } catch (err: any) {
@@ -471,17 +477,30 @@ export default function CalendarPage() {
 
         {/* Error or Alert banner */}
         {error && (
-          <div className="px-6 py-3 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+          <div className="px-6 py-3 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span>{error}</span>
             </div>
-            <a
-              href="/mail"
-              className="text-xs font-bold text-[#15605A] hover:underline flex-shrink-0"
-            >
-              Ir a vincular cuenta de Google &rarr;
-            </a>
+
+            {apiActivationUrl ? (
+              <a
+                href={apiActivationUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors flex-shrink-0"
+              >
+                <span>Habilitar API en Google Cloud</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            ) : (
+              <a
+                href="/mail"
+                className="text-xs font-bold text-[#15605A] hover:underline flex-shrink-0"
+              >
+                Ir a vincular cuenta de Google &rarr;
+              </a>
+            )}
           </div>
         )}
 
