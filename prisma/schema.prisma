@@ -19,6 +19,7 @@ model User {
   sessions       Session[]
   passwordResets PasswordResetToken[]
   accounts       ConnectedAccount[]
+  calendarEvents CalendarEvent[]
 
   @@map("users")
 }
@@ -75,3 +76,26 @@ model ConnectedAccount {
   @@map("connected_accounts")
 }
 
+
+model CalendarEvent {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleEventId  String?
+  summary        String
+  description    String?
+  location       String?
+  start          DateTime
+  end            DateTime
+  isAllDay       Boolean   @default(false)
+  meetUrl        String?
+  colorId        String?   @default("7")
+  attendees      String?   // JSON array string of attendees
+  status         String    @default("confirmed")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([start])
+  @@map("calendar_events")
+}

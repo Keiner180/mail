@@ -71,6 +71,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apiActivationUrl, setApiActivationUrl] = useState<string | null>(null);
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
   // Calendar navigation state
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -118,6 +119,20 @@ export default function CalendarPage() {
     }
   }, []);
 
+  const handleConnectGoogle = async () => {
+    try {
+      const res = await fetch("/api/auth/google/url");
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "No se pudo iniciar la conexión con Google");
+      }
+    } catch {
+      alert("Error de red al conectar con Google");
+    }
+  };
+
   const fetchEvents = async () => {
     try {
       setLoading(true);
@@ -125,26 +140,18 @@ export default function CalendarPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.noAccount) {
-          setError(
-            "Para utilizar el Calendario, debes vincular una cuenta de Google en la sección de Correo o Perfil."
-          );
-        } else if (data.apiDisabled) {
-          setError(data.error);
-          setApiActivationUrl(data.activationUrl);
-        } else {
-          setError(data.error || "No se pudieron sincronizar los eventos de Google Calendar.");
-        }
+        setError(data.error || "No se pudieron sincronizar los eventos.");
         return;
       }
 
-      setError(null);
-      setApiActivationUrl(null);
+      setError(data.googleError || null);
+      setApiActivationUrl(data.activationUrl || null);
       setEvents(data.events || []);
       setAccount(data.account || null);
+      setIsGoogleConnected(Boolean(data.isGoogleConnected));
     } catch (err: any) {
       console.error(err);
-      setError("Error de red al consultar Google Calendar");
+      setError("Error de red al consultar eventos de calendario");
     } finally {
       setLoading(false);
     }
@@ -454,12 +461,31 @@ export default function CalendarPage() {
               </button>
             </div>
 
+            {/* Google Connection status or Connect button */}
+            {isGoogleConnected ? (
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="truncate max-w-[150px]">{account?.email || "Google Conectado"}</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleConnectGoogle}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100/80 text-blue-700 text-xs font-bold transition-all shadow-2xs"
+                title="Vincular con Google Calendar"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.053 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+                </svg>
+                <span>Vincular Google</span>
+              </button>
+            )}
+
             {/* Refresh Button */}
             <button
               onClick={fetchEvents}
               disabled={loading}
               className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
-              title="Sincronizar con Google Calendar"
+              title="Sincronizar eventos"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#15605A]" : ""}`} />
             </button>
@@ -474,6 +500,24 @@ export default function CalendarPage() {
             </button>
           </div>
         </header>
+
+        {/* Local Mode Info Pill if Google is not connected */}
+        {!isGoogleConnected && (
+          <div className="px-6 py-2.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-b border-teal-100 text-[#15605A] text-xs flex items-center justify-between gap-3 select-none">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-teal-500" />
+              <span>
+                <strong>Calendario Habilitado:</strong> Puedes crear y gestionar todos tus eventos ahora mismo en Jabvox.
+              </span>
+            </div>
+            <button
+              onClick={handleConnectGoogle}
+              className="text-xs font-bold text-blue-700 hover:text-blue-900 underline flex-shrink-0"
+            >
+              Sincronizar con Google Calendar &rarr;
+            </button>
+          </div>
+        )}
 
         {/* Error or Alert banner */}
         {error && (

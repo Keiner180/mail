@@ -40,38 +40,67 @@ export async function PATCH(
 
     const { accountId, ...eventInput } = parsed.data;
 
-    let account;
-    if (accountId) {
-      account = await db.connectedAccount.findFirst({
-        where: { id: accountId, userId: user.id },
-      });
-    } else {
-      account = await db.connectedAccount.findFirst({
-        where: { userId: user.id, provider: "google" },
-        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-      });
-    }
-
-    if (!account) {
-      return NextResponse.json(
-        { error: "No hay una cuenta de Google conectada", noAccount: true },
-        { status: 404 }
-      );
-    }
-
-    const updated = await updateCalendarEvent(account, {
-      ...eventInput,
-      eventId,
+    // Check if event exists locally
+    const localEvent = await db.calendarEvent.findFirst({
+      where: {
+        userId: user.id,
+        OR: [{ id: eventId }, { googleEventId: eventId }],
+      },
     });
+
+    const googleAccount = await db.connectedAccount.findFirst({
+      where: { userId: user.id, provider: "google" },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    });
+
+    // If Google account is available and event is in Google, update Google event
+    const targetGoogleId = localEvent?.googleEventId || eventId;
+    if (googleAccount && targetGoogleId && !localEvent) {
+      try {
+        await updateCalendarEvent(googleAccount, {
+          ...eventInput,
+          eventId: targetGoogleId,
+        });
+      } catch (err) {
+        console.warn("Could not update in Google Calendar:", err);
+      }
+    }
+
+    // Update in local DB if exists or create
+    if (localEvent) {
+      await db.calendarEvent.update({
+        where: { id: localEvent.id },
+        data: {
+          summary: eventInput.summary,
+          description: eventInput.description || null,
+          location: eventInput.location || null,
+          start: new Date(eventInput.start),
+          end: new Date(eventInput.end),
+          isAllDay: Boolean(eventInput.isAllDay),
+          colorId: eventInput.colorId || "7",
+          attendees: eventInput.attendees ? JSON.stringify(eventInput.attendees) : null,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      event: updated,
+      event: {
+        id: eventId,
+        summary: eventInput.summary,
+        description: eventInput.description,
+        start: eventInput.start,
+        end: eventInput.end,
+        isAllDay: Boolean(eventInput.isAllDay),
+        location: eventInput.location,
+        colorId: eventInput.colorId,
+        attendees: eventInput.attendees?.map((e) => ({ email: e })),
+      },
     });
   } catch (error: any) {
     console.error("Error updating calendar event:", error);
     return NextResponse.json(
-      { error: error.message || "Error al actualizar evento en Google Calendar" },
+      { error: error.message || "Error al actualizar evento" },
       { status: 500 }
     );
   }
@@ -88,29 +117,33 @@ export async function DELETE(
     }
 
     const { id: eventId } = await context.params;
-    const { searchParams } = req.nextUrl;
-    const accountId = searchParams.get("accountId");
 
-    let account;
-    if (accountId) {
-      account = await db.connectedAccount.findFirst({
-        where: { id: accountId, userId: user.id },
-      });
-    } else {
-      account = await db.connectedAccount.findFirst({
-        where: { userId: user.id, provider: "google" },
-        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-      });
+    const localEvent = await db.calendarEvent.findFirst({
+      where: {
+        userId: user.id,
+        OR: [{ id: eventId }, { googleEventId: eventId }],
+      },
+    });
+
+    const googleAccount = await db.connectedAccount.findFirst({
+      where: { userId: user.id, provider: "google" },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    });
+
+    if (googleAccount) {
+      const googleId = localEvent?.googleEventId || eventId;
+      try {
+        await deleteCalendarEvent(googleAccount, googleId);
+      } catch (err) {
+        console.warn("Could not delete from Google Calendar:", err);
+      }
     }
 
-    if (!account) {
-      return NextResponse.json(
-        { error: "No hay una cuenta de Google conectada", noAccount: true },
-        { status: 404 }
-      );
+    if (localEvent) {
+      await db.calendarEvent.delete({
+        where: { id: localEvent.id },
+      });
     }
-
-    await deleteCalendarEvent(account, eventId);
 
     return NextResponse.json({
       success: true,
@@ -119,9 +152,8 @@ export async function DELETE(
   } catch (error: any) {
     console.error("Error deleting calendar event:", error);
     return NextResponse.json(
-      { error: error.message || "Error al eliminar evento en Google Calendar" },
+      { error: error.message || "Error al eliminar evento" },
       { status: 500 }
     );
   }
 }
-
