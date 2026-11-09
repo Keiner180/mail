@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import JabvoxAppLayout from "@/components/layout/JabvoxAppLayout";
 import {
   User,
   Mail,
@@ -15,6 +16,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Star,
+  Settings,
 } from "lucide-react";
 
 interface AccountItem {
@@ -194,44 +196,46 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f8fc] pb-12">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+    <JabvoxAppLayout user={user}>
+      <div className="flex-1 flex flex-col h-full bg-[#f8fafc] overflow-y-auto">
+        {/* Module Sub-Header */}
+        <header className="h-14 min-h-14 border-b border-gray-200/90 px-4 md:px-6 flex items-center justify-between bg-[#FAFBFB] flex-shrink-0 select-none">
           <div className="flex items-center gap-3">
-            <Link
-              href="/mail"
-              className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
-              title="Volver a la bandeja"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-lg font-bold text-gray-900">Configuración de Usuario</h1>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-[#15605A]/10 text-[#15605A] flex items-center justify-center font-bold">
+                <Settings className="w-4 h-4" />
+              </div>
+              <span className="text-sm font-bold text-gray-900">Ajustes & Configuración</span>
+            </div>
+            <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block" />
+            <span className="text-xs text-gray-500 hidden sm:inline">
+              Perfil, seguridad y cuentas vinculadas
+            </span>
           </div>
 
           <Link
             href="/mail"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            className="text-xs font-semibold text-[#15605A] hover:underline flex items-center gap-1.5"
           >
-            Ir a Bandeja de Entrada
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Volver al correo</span>
           </Link>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-4xl mx-auto px-4 mt-8 space-y-6">
-        {successMsg && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2.5">
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-600" />
-            <span>{successMsg}</span>
-          </div>
-        )}
+        <div className="max-w-4xl w-full mx-auto p-4 md:p-6 space-y-6 pb-12">
+          {successMsg && (
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2.5">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-600" />
+              <span>{successMsg}</span>
+            </div>
+          )}
 
-        {errorMsg && (
-          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2.5">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+          {errorMsg && (
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2.5">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
         {/* Personal Details & Password Section */}
         <section className="bg-white rounded-2xl border border-gray-200/80 p-6 md:p-8 shadow-sm">
@@ -483,8 +487,9 @@ export default function ProfilePage() {
             </div>
           )}
         </section>
-      </main>
-    </div>
+        </div>
+      </div>
+    </JabvoxAppLayout>
   );
 }
 

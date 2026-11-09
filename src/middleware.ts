@@ -49,7 +49,7 @@ export function middleware(request: NextRequest) {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https://gmail.googleapis.com https://accounts.google.com https://oauth2.googleapis.com",
+      "connect-src 'self' https://gmail.googleapis.com https://accounts.google.com https://oauth2.googleapis.com https://graph.microsoft.com https://login.microsoftonline.com",
       "frame-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",

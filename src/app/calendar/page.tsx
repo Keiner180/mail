@@ -378,15 +378,15 @@ export default function CalendarPage() {
   return (
     <JabvoxAppLayout user={user}>
       <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-        {/* Top Header Bar */}
-        <header className="h-16 border-b border-slate-200/90 px-6 flex items-center justify-between bg-white flex-shrink-0 select-none">
+        {/* Module Sub-Header Bar */}
+        <header className="h-14 min-h-14 border-b border-gray-200/90 px-4 md:px-6 flex items-center justify-between bg-[#FAFBFB] flex-shrink-0 select-none">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#15605A] to-[#258f86] text-white flex items-center justify-center shadow-sm">
-                <CalendarIcon className="w-5 h-5" />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#15605A] to-[#258f86] text-white flex items-center justify-center shadow-xs">
+                <CalendarIcon className="w-4 h-4" />
               </div>
-              <span className="font-extrabold text-slate-800 text-lg tracking-tight">
-                Google Calendar
+              <span className="font-bold text-slate-800 text-sm tracking-tight">
+                Calendario
               </span>
             </div>
 

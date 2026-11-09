@@ -13,16 +13,16 @@ export default async function UsersPage() {
 
   return (
     <JabvoxAppLayout user={user}>
-      <div className="flex-1 flex flex-col h-full bg-[#f6f9f9] overflow-auto">
-        {/* Module Header */}
-        <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between flex-shrink-0">
+      <div className="flex-1 flex flex-col h-full bg-[#f8fafc] overflow-auto">
+        {/* Module Sub-Header */}
+        <header className="h-14 min-h-14 bg-[#FAFBFB] border-b border-gray-200/90 px-4 md:px-6 flex items-center justify-between flex-shrink-0 select-none">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#15605A] flex items-center justify-center font-bold">
-              <Users className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-[#15605A]/10 text-[#15605A] flex items-center justify-center font-bold">
+              <Users className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900">Módulo de Usuarios</h1>
-              <p className="text-xs text-gray-500">Gestión de usuarios y accesos de la organización</p>
+              <h1 className="text-sm font-bold text-gray-900 leading-tight">Gestión • Usuarios</h1>
+              <p className="text-[10px] text-gray-500">Gestión de usuarios y accesos del espacio</p>
             </div>
           </div>
 

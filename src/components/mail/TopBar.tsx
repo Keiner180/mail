@@ -148,33 +148,33 @@ export default function TopBar({
     acc?.provider === "microsoft" || acc?.provider === "outlook";
 
   return (
-    <header className="h-16 bg-white/95 backdrop-blur-md border-b border-gray-200/80 px-4 md:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 select-none shadow-2xs">
+    <header className="h-14 min-h-14 bg-[#FAFBFB] border-b border-gray-200/90 px-3 md:px-5 flex items-center justify-between gap-3 sticky top-0 z-30 select-none">
       {/* Left: Module title with Jabvox style badge */}
-      <div className="flex items-center gap-2.5 min-w-[170px]">
+      <div className="flex items-center gap-2.5 min-w-[150px]">
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
             className="p-1.5 -ml-1 rounded-xl hover:bg-gray-100 text-gray-600 md:hidden transition-colors"
             title="Carpetas de correo"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4.5 h-4.5" />
           </button>
         )}
 
-        <div className="w-9 h-9 rounded-2xl bg-[#15605A]/10 text-[#15605A] flex items-center justify-center flex-shrink-0 shadow-2xs">
-          <Mail className="w-4.5 h-4.5" />
+        <div className="w-8 h-8 rounded-xl bg-[#15605A]/10 text-[#15605A] flex items-center justify-center flex-shrink-0 shadow-2xs">
+          <Mail className="w-4 h-4" />
         </div>
         <div className="hidden sm:block">
           <div className="flex items-center gap-1.5">
-            <span className="font-extrabold text-gray-900 text-sm tracking-tight block leading-tight">
+            <span className="font-extrabold text-gray-900 text-xs tracking-tight block leading-tight">
               Correo
             </span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-bold border border-emerald-200 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {isMicrosoftAccount(activeAccount) ? "Outlook Graph" : "Gmail API"}
             </span>
           </div>
-          <span className="text-[10px] text-gray-400 block font-medium">
+          <span className="text-[9px] text-gray-400 block font-medium">
             {isMicrosoftAccount(activeAccount)
               ? "Microsoft 365 / Outlook Oficial"
               : "Google Workspace Oficial"}
