@@ -10,7 +10,7 @@ export function sanitizeEmailHeader(value: string | undefined): string {
   return value.replace(/[\r\n\x00-\x1F\x7F]+/g, " ").trim();
 }
 
-const EMAIL_REGEX = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+const EMAIL_REGEX = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/;
 
 /**
  * Extracts and validates a single email address from raw inputs (e.g., "John <john@gmail.com>" or "john@gmail.com,")

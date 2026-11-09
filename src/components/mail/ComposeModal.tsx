@@ -46,7 +46,7 @@ interface ComposeModalProps {
   onSentSuccess?: () => void;
 }
 
-const EMAIL_REGEX = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+const EMAIL_REGEX = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/;
 
 function extractCleanEmail(raw: string): string {
   const match = raw.match(/<([^>]+)>/);
@@ -120,54 +120,84 @@ export default function ComposeModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toChips, toInput, ccChips, ccInput, bccChips, bccInput, subject, body, attachments]);
 
-  const processEmailInput = (
-    input: string,
+  const addRecipientChip = (
+    value: string,
     chips: string[],
-    setChips: (chips: string[]) => void,
-    setInput: (val: string) => void
+    setChips: (c: string[]) => void,
+    setInput: (v: string) => void
   ) => {
-    const tokens = input.split(/[,;\s]+/);
-    const valid: string[] = [];
-    let leftover = "";
+    const email = extractCleanEmail(value);
+    if (!email) return;
 
-    tokens.forEach((token) => {
-      const email = extractCleanEmail(token);
-      if (!email) return;
-      if (EMAIL_REGEX.test(email)) {
-        if (!chips.includes(email) && !valid.includes(email)) {
-          valid.push(email);
-        }
-      } else {
-        leftover = token;
+    if (EMAIL_REGEX.test(email)) {
+      if (!chips.includes(email)) {
+        setChips([...chips, email]);
       }
-    });
-
-    if (valid.length > 0) {
-      setChips([...chips, ...valid]);
-      setInput(leftover);
+      setInput("");
+      setError(null);
+    } else {
+      setError(`La dirección '${email}' no tiene un formato válido (ejemplo: usuario@correo.com)`);
     }
   };
 
   const handleKeyDownRecipient = (
     e: React.KeyboardEvent<HTMLInputElement>,
     chips: string[],
-    setChips: (chips: string[]) => void,
+    setChips: (c: string[]) => void,
     input: string,
-    setInput: (val: string) => void
+    setInput: (v: string) => void
   ) => {
-    if (e.key === "Enter" || e.key === "," || e.key === ";" || e.key === "Tab") {
+    if (e.key === "Enter" || e.key === "," || e.key === ";" || e.key === "Tab" || e.key === " ") {
       e.preventDefault();
-      const email = extractCleanEmail(input);
-      if (email && EMAIL_REGEX.test(email)) {
-        if (!chips.includes(email)) {
-          setChips([...chips, email]);
-        }
-        setInput("");
-      } else if (email) {
-        setError(`El correo '${email}' no tiene un formato válido (ejemplo: usuario@correo.com)`);
+      if (input.trim()) {
+        addRecipientChip(input, chips, setChips, setInput);
       }
     } else if (e.key === "Backspace" && !input && chips.length > 0) {
       setChips(chips.slice(0, -1));
+    }
+  };
+
+  const handleBlurRecipient = (
+    chips: string[],
+    setChips: (c: string[]) => void,
+    input: string,
+    setInput: (v: string) => void
+  ) => {
+    if (!input.trim()) return;
+    const email = extractCleanEmail(input);
+    if (email && EMAIL_REGEX.test(email)) {
+      if (!chips.includes(email)) {
+        setChips([...chips, email]);
+      }
+      setInput("");
+      setError(null);
+    }
+  };
+
+  const handlePasteRecipient = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    chips: string[],
+    setChips: (c: string[]) => void,
+    setInput: (v: string) => void
+  ) => {
+    const text = e.clipboardData.getData("text");
+    if (text.includes(",") || text.includes(";") || text.includes(" ") || text.includes("\n")) {
+      e.preventDefault();
+      const tokens = text.split(/[,;\s\n]+/);
+      const newChips = [...chips];
+      let leftover = "";
+
+      for (const t of tokens) {
+        const email = extractCleanEmail(t);
+        if (!email) continue;
+        if (EMAIL_REGEX.test(email)) {
+          if (!newChips.includes(email)) newChips.push(email);
+        } else {
+          leftover = t;
+        }
+      }
+      setChips(newChips);
+      setInput(leftover);
     }
   };
 
@@ -217,18 +247,19 @@ export default function ComposeModal({
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const collectRecipients = (chips: string[], input: string): string[] => {
+  const collectRecipients = (chips: string[], input: string): { valid: string[]; invalid?: string } => {
     const list = [...chips];
     if (input.trim()) {
-      const tokens = input.split(/[,;\s]+/);
-      for (const t of tokens) {
-        const email = extractCleanEmail(t);
-        if (email && EMAIL_REGEX.test(email) && !list.includes(email)) {
-          list.push(email);
+      const email = extractCleanEmail(input);
+      if (email) {
+        if (EMAIL_REGEX.test(email)) {
+          if (!list.includes(email)) list.push(email);
+        } else {
+          return { valid: list, invalid: email };
         }
       }
     }
-    return list;
+    return { valid: list };
   };
 
   const handleSaveDraft = async (isAuto = false) => {
@@ -236,9 +267,9 @@ export default function ComposeModal({
       if (!isAuto) setSavingDraft(true);
       setError(null);
 
-      const finalTo = collectRecipients(toChips, toInput);
-      const finalCc = collectRecipients(ccChips, ccInput);
-      const finalBcc = collectRecipients(bccChips, bccInput);
+      const finalTo = collectRecipients(toChips, toInput).valid;
+      const finalCc = collectRecipients(ccChips, ccInput).valid;
+      const finalBcc = collectRecipients(bccChips, bccInput).valid;
 
       const res = await fetch("/api/mail/draft", {
         method: "POST",
@@ -277,18 +308,35 @@ export default function ComposeModal({
     if (e) e.preventDefault();
     setError(null);
 
-    const finalTo = collectRecipients(toChips, toInput);
+    const toResult = collectRecipients(toChips, toInput);
+    if (toResult.invalid) {
+      setError(`La dirección '${toResult.invalid}' no tiene un formato válido (ejemplo: usuario@correo.com).`);
+      return;
+    }
 
+    const finalTo = toResult.valid;
     if (finalTo.length === 0) {
       setError("Debes ingresar al menos un correo de destinatario válido (ejemplo: usuario@correo.com).");
+      return;
+    }
+
+    const ccResult = collectRecipients(ccChips, ccInput);
+    if (ccResult.invalid) {
+      setError(`La dirección en Cc '${ccResult.invalid}' no tiene un formato válido.`);
+      return;
+    }
+
+    const bccResult = collectRecipients(bccChips, bccInput);
+    if (bccResult.invalid) {
+      setError(`La dirección en Cco '${bccResult.invalid}' no tiene un formato válido.`);
       return;
     }
 
     setSending(true);
 
     try {
-      const finalCc = collectRecipients(ccChips, ccInput);
-      const finalBcc = collectRecipients(bccChips, bccInput);
+      const finalCc = ccResult.valid;
+      const finalBcc = bccResult.valid;
 
       const res = await fetch("/api/mail/send", {
         method: "POST",
@@ -498,10 +546,16 @@ export default function ComposeModal({
             value={toInput}
             onChange={(e) => {
               setToInput(e.target.value);
-              processEmailInput(e.target.value, toChips, setToChips, setToInput);
+              setError(null);
             }}
             onKeyDown={(e) =>
               handleKeyDownRecipient(e, toChips, setToChips, toInput, setToInput)
+            }
+            onBlur={() =>
+              handleBlurRecipient(toChips, setToChips, toInput, setToInput)
+            }
+            onPaste={(e) =>
+              handlePasteRecipient(e, toChips, setToChips, setToInput)
             }
             placeholder={toChips.length === 0 ? "destinatario@correo.com" : ""}
             className="flex-1 min-w-[160px] focus:outline-none text-slate-800 placeholder-slate-400 py-1 text-xs"
@@ -553,10 +607,16 @@ export default function ComposeModal({
               value={ccInput}
               onChange={(e) => {
                 setCcInput(e.target.value);
-                processEmailInput(e.target.value, ccChips, setCcChips, setCcInput);
+                setError(null);
               }}
               onKeyDown={(e) =>
                 handleKeyDownRecipient(e, ccChips, setCcChips, ccInput, setCcInput)
+              }
+              onBlur={() =>
+                handleBlurRecipient(ccChips, setCcChips, ccInput, setCcInput)
+              }
+              onPaste={(e) =>
+                handlePasteRecipient(e, ccChips, setCcChips, setCcInput)
               }
               placeholder="copia@correo.com"
               className="flex-1 min-w-[160px] focus:outline-none text-slate-800 placeholder-slate-400 py-1 text-xs bg-transparent"
@@ -588,10 +648,16 @@ export default function ComposeModal({
               value={bccInput}
               onChange={(e) => {
                 setBccInput(e.target.value);
-                processEmailInput(e.target.value, bccChips, setBccChips, setBccInput);
+                setError(null);
               }}
               onKeyDown={(e) =>
                 handleKeyDownRecipient(e, bccChips, setBccChips, bccInput, setBccInput)
+              }
+              onBlur={() =>
+                handleBlurRecipient(bccChips, setBccChips, bccInput, setBccInput)
+              }
+              onPaste={(e) =>
+                handlePasteRecipient(e, bccChips, setBccChips, setBccInput)
               }
               placeholder="copia-oculta@correo.com"
               className="flex-1 min-w-[160px] focus:outline-none text-slate-800 placeholder-slate-400 py-1 text-xs bg-transparent"
