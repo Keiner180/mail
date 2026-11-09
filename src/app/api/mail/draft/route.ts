@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { saveDraft, OutgoingEmailPayload } from "@/lib/gmail/service";
+import { sanitizeEmailList, sanitizeEmailHeader } from "@/lib/security/sanitizer";
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,10 +35,10 @@ export async function POST(req: NextRequest) {
 
     const payload: OutgoingEmailPayload & { draftId?: string } = {
       draftId: draftId || undefined,
-      to: Array.isArray(to) ? to : to ? [to] : [],
-      cc: Array.isArray(cc) ? cc : cc ? [cc] : undefined,
-      bcc: Array.isArray(bcc) ? bcc : bcc ? [bcc] : undefined,
-      subject: subject || "(Borrador sin asunto)",
+      to: sanitizeEmailList(Array.isArray(to) ? to : to ? [to] : []),
+      cc: cc ? sanitizeEmailList(Array.isArray(cc) ? cc : [cc]) : undefined,
+      bcc: bcc ? sanitizeEmailList(Array.isArray(bcc) ? bcc : [bcc]) : undefined,
+      subject: sanitizeEmailHeader(subject) || "(Borrador sin asunto)",
       bodyHtml: bodyHtml || "<p></p>",
       bodyText,
       attachments,

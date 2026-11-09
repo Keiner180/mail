@@ -10,14 +10,37 @@ export function sanitizeEmailHeader(value: string | undefined): string {
   return value.replace(/[\r\n\x00-\x1F\x7F]+/g, " ").trim();
 }
 
+const EMAIL_REGEX = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+
 /**
- * Sanitizes an array of email addresses, stripping header injections and invalid characters.
+ * Extracts and validates a single email address from raw inputs (e.g., "John <john@gmail.com>" or "john@gmail.com,")
+ */
+export function extractAndValidateEmail(raw: string): { email: string; valid: boolean } {
+  if (!raw || typeof raw !== "string") return { email: "", valid: false };
+  const sanitized = sanitizeEmailHeader(raw);
+  const match = sanitized.match(/<([^>]+)>/);
+  const candidate = (match ? match[1] : sanitized).replace(/[<>]/g, "").replace(/[,;]+$/, "").trim();
+  const valid = EMAIL_REGEX.test(candidate);
+  return { email: candidate, valid };
+}
+
+/**
+ * Sanitizes an array of email addresses, splitting commas/semicolons, stripping header injections and invalid characters.
  */
 export function sanitizeEmailList(emails: string[] | undefined): string[] {
   if (!emails || !Array.isArray(emails)) return [];
-  return emails
-    .map((e) => sanitizeEmailHeader(e))
-    .filter((e) => e.length > 0 && e.includes("@"));
+  const list: string[] = [];
+  for (const item of emails) {
+    if (!item) continue;
+    const tokens = item.split(/[,;]+/);
+    for (const t of tokens) {
+      const { email, valid } = extractAndValidateEmail(t);
+      if (valid && email && !list.includes(email)) {
+        list.push(email);
+      }
+    }
+  }
+  return list;
 }
 
 /**

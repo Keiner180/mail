@@ -513,6 +513,13 @@ function MailDashboardContent() {
             currentFolder={currentFolder}
             onSelectFolder={handleSelectFolder}
             onOpenCompose={() => {
+              if (!activeAccount && accounts.length === 0) {
+                setBanner({
+                  type: "error",
+                  message: "Debes vincular una cuenta de Gmail o Outlook antes de redactar correos.",
+                });
+                return;
+              }
               setComposeData(null);
               setIsComposeOpen(true);
             }}
@@ -563,9 +570,9 @@ function MailDashboardContent() {
         </div>
 
         {/* Compose Window Modal */}
-        {isComposeOpen && activeAccount && (
+        {isComposeOpen && (activeAccount || accounts[0]) && (
           <ComposeModal
-            accountId={activeAccount.id}
+            accountId={(activeAccount || accounts[0]).id}
             initialData={composeData}
             onClose={() => {
               setIsComposeOpen(false);

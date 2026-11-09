@@ -334,9 +334,11 @@ function buildMimeMessage(accountEmail: string, payload: OutgoingEmailPayload): 
 
   const headers: string[] = [
     `From: <${accountEmail}>`,
-    `To: ${payload.to.join(", ")}`,
   ];
 
+  if (payload.to && payload.to.length > 0) {
+    headers.push(`To: ${payload.to.join(", ")}`);
+  }
   if (payload.cc && payload.cc.length > 0) {
     headers.push(`Cc: ${payload.cc.join(", ")}`);
   }

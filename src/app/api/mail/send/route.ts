@@ -124,7 +124,14 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("Error sending message:", error);
-    const msg = error instanceof Error ? error.message : "Error al enviar el correo";
+    let msg = error instanceof Error ? error.message : "Error al enviar el correo";
+    if (msg.includes("Invalid To header")) {
+      msg = "Una o más direcciones de correo de los destinatarios no son válidas o fueron rechazadas por Google.";
+    } else if (msg.includes("invalid_grant")) {
+      msg = "La autorización de la cuenta expiró. Por favor ve a Ajustes y reconecta tu cuenta.";
+    } else if (msg.toLowerCase().includes("quota")) {
+      msg = "Has alcanzado el límite de envíos permitido por tu proveedor de correo.";
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
