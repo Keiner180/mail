@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { exchangeCodeForTokens, fetchGoogleUserProfile } from "@/lib/gmail/oauth";
-import { encryptText } from "@/lib/crypto";
 import { verifySignedOAuthState } from "@/lib/security/csrf";
-import { db } from "@/lib/db";
+import { ProvisioningEngine } from "@/lib/provisioning/engine";
 
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin || process.env.NEXTAUTH_URL || "http://localhost:3005";
@@ -61,57 +60,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/mail?error=${encodeURIComponent("No se pudo identificar el correo de la cuenta de Google")}`);
     }
 
-    const accessTokenEnc = encryptText(tokens.access_token);
-    const refreshTokenEnc = tokens.refresh_token ? encryptText(tokens.refresh_token) : "";
-    const tokenExpiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
-
-    // Check if account already exists for this user
-    const existing = await db.connectedAccount.findUnique({
-      where: {
-        userId_email: {
-          userId: user.id,
-          email: googleEmail,
-        },
-      },
+    // Aprovisionamiento atómico e independiente con envelope encryption
+    await ProvisioningEngine.bindAccount({
+      userId: user.id,
+      provider: "google",
+      email: googleEmail,
+      name: googleProfile.name || googleEmail,
+      avatar: googleProfile.picture || null,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token || "",
+      scope: tokens.scope || null,
+      tokenExpiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
     });
-
-    const isFirstAccount = (await db.connectedAccount.count({ where: { userId: user.id } })) === 0;
-
-    if (existing) {
-      await db.connectedAccount.update({
-        where: { id: existing.id },
-        data: {
-          name: googleProfile.name || existing.name,
-          avatar: googleProfile.picture || existing.avatar,
-          accessTokenEnc,
-          // Preserve existing refresh token if Google didn't return a new one
-          refreshTokenEnc: refreshTokenEnc || existing.refreshTokenEnc,
-          tokenExpiresAt,
-          status: "active",
-          lastSyncAt: new Date(),
-        },
-      });
-    } else {
-      if (!refreshTokenEnc) {
-        console.warn("No refresh token received during initial connection for", googleEmail);
-      }
-
-      await db.connectedAccount.create({
-        data: {
-          userId: user.id,
-          email: googleEmail,
-          name: googleProfile.name || googleEmail,
-          avatar: googleProfile.picture || null,
-          accessTokenEnc,
-          refreshTokenEnc: refreshTokenEnc || "",
-          tokenExpiresAt,
-          status: "active",
-          isDefault: isFirstAccount,
-          lastSyncAt: new Date(),
-          scope: tokens.scope || null,
-        },
-      });
-    }
 
     return NextResponse.redirect(`${origin}/mail?connected=true&email=${encodeURIComponent(googleEmail)}`);
   } catch (error: unknown) {

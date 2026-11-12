@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { sendMessage, OutgoingEmailPayload } from "@/lib/gmail/service";
 import { sendOutlookMail } from "@/lib/outlook/service";
 import { checkRateLimit, RateLimitPresets } from "@/lib/security/rate-limiter";
+import { ProvisioningEngine } from "@/lib/provisioning/engine";
 import {
   sanitizeEmailHeader,
   sanitizeEmailList,
@@ -25,6 +26,9 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
+
+    // Validar cuotas enterprise del usuario
+    await ProvisioningEngine.assertQuota(user.id, "SEND_EMAIL");
 
     const body = await req.json();
     const {
@@ -116,6 +120,9 @@ export async function POST(req: NextRequest) {
       messageId = res.id || undefined;
       threadIdRes = res.threadId || undefined;
     }
+
+    // Registrar consumo de cuota
+    await ProvisioningEngine.recordUsage(account.id, "EMAIL_SEND", 1);
 
     return NextResponse.json({
       success: true,

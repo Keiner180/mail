@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { encryptText } from "@/lib/crypto";
 import { exchangeMicrosoftCode, fetchMicrosoftUserProfile } from "@/lib/outlook/oauth";
 import { verifySignedOAuthState } from "@/lib/security/csrf";
+import { ProvisioningEngine } from "@/lib/provisioning/engine";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -55,43 +54,17 @@ export async function GET(req: NextRequest) {
     const email = profile.email.toLowerCase();
     const expiresAt = new Date(Date.now() + tokens.expiresIn * 1000);
 
-    // Check existing accounts count
-    const existingAccountsCount = await db.connectedAccount.count({
-      where: { userId: user.id },
-    });
-
-    const isFirstAccount = existingAccountsCount === 0;
-
-    await db.connectedAccount.upsert({
-      where: {
-        userId_email: {
-          userId: user.id,
-          email,
-        },
-      },
-      update: {
-        provider: "microsoft",
-        name: profile.name,
-        accessTokenEnc: encryptText(tokens.accessToken),
-        refreshTokenEnc: encryptText(tokens.refreshToken),
-        scope: tokens.scope,
-        tokenExpiresAt: expiresAt,
-        status: "active",
-        lastSyncAt: new Date(),
-        updatedAt: new Date(),
-      },
-      create: {
-        userId: user.id,
-        provider: "microsoft",
-        email,
-        name: profile.name,
-        accessTokenEnc: encryptText(tokens.accessToken),
-        refreshTokenEnc: encryptText(tokens.refreshToken),
-        scope: tokens.scope,
-        tokenExpiresAt: expiresAt,
-        status: "active",
-        isDefault: isFirstAccount,
-      },
+    // Aprovisionamiento atómico e independiente con envelope encryption
+    await ProvisioningEngine.bindAccount({
+      userId: user.id,
+      provider: "microsoft",
+      email,
+      name: profile.name || email,
+      avatar: null,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      scope: tokens.scope || null,
+      tokenExpiresAt: expiresAt,
     });
 
     return NextResponse.redirect(
