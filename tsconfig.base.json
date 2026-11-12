@@ -11,6 +11,13 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@jabvox/contracts": ["packages/contracts/dist/index"],
+      "@jabvox/security": ["packages/security/dist/index"],
+      "@jabvox/database": ["packages/database/dist/index"],
+      "@jabvox/providers-core": ["packages/providers/core/dist/index"]
+    }
   }
 }

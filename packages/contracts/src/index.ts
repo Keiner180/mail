@@ -3,8 +3,16 @@ import { z } from "zod";
 // ==========================================
 // User & Auth Contracts
 // ==========================================
-export const UserRoleSchema = z.enum(["OWNER", "ADMIN", "MEMBER"]);
-export type UserRole = z.infer<typeof UserRoleSchema>;
+export const GlobalRoleSchema = z.enum(["USER", "PLATFORM_ADMIN", "SUPPORT_AGENT"]);
+export type GlobalRole = z.infer<typeof GlobalRoleSchema>;
+
+export const UserAccountStatusSchema = z.enum([
+  "PENDING_ACTIVATION",
+  "ACTIVE",
+  "SUSPENDED",
+  "ARCHIVED",
+]);
+export type UserAccountStatus = z.infer<typeof UserAccountStatusSchema>;
 
 export const RegisterUserSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
@@ -25,14 +33,74 @@ export const UserProfileSchema = z.object({
   email: z.string().email(),
   name: z.string(),
   lastName: z.string(),
-  role: UserRoleSchema.default("MEMBER"),
+  avatar: z.string().nullable().optional(),
+  role: GlobalRoleSchema.default("USER"),
+  status: UserAccountStatusSchema.default("ACTIVE"),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
 // ==========================================
-// Provider Engine & OAuth Contracts
+// Multi-Tenant & Organization Contracts
+// ==========================================
+export const TenantRoleSchema = z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]);
+export type TenantRole = z.infer<typeof TenantRoleSchema>;
+
+export const TenantStatusSchema = z.enum([
+  "TRIAL",
+  "ACTIVE",
+  "PAST_DUE",
+  "SUSPENDED",
+  "CANCELLED",
+]);
+export type TenantStatus = z.infer<typeof TenantStatusSchema>;
+
+export const SubscriptionTierSchema = z.enum([
+  "FREE",
+  "STARTER",
+  "PROFESSIONAL",
+  "ENTERPRISE",
+]);
+export type SubscriptionTier = z.infer<typeof SubscriptionTierSchema>;
+
+export const CreateTenantSchema = z.object({
+  name: z.string().min(2, "El nombre de la empresa es requerido"),
+  slug: z.string().min(2).regex(/^[a-z0-9-]+$/, "Slug inválido"),
+});
+export type CreateTenantInput = z.infer<typeof CreateTenantSchema>;
+
+// ==========================================
+// Projects & BYO-Cloud Provider Apps
+// ==========================================
+export const ProjectStatusSchema = z.enum([
+  "INITIALIZING",
+  "ACTIVE",
+  "SUSPENDED",
+  "DISABLED",
+]);
+export type ProjectStatus = z.infer<typeof ProjectStatusSchema>;
+
+export const AppDeploymentTypeSchema = z.enum([
+  "MANAGED_MASTER",
+  "MANAGED_POOL",
+  "CUSTOM_BYO",
+]);
+export type AppDeploymentType = z.infer<typeof AppDeploymentTypeSchema>;
+
+export const RegisterProviderAppSchema = z.object({
+  projectId: z.string().optional(),
+  provider: z.enum(["GOOGLE", "MICROSOFT"]),
+  applicationType: AppDeploymentTypeSchema.default("CUSTOM_BYO"),
+  name: z.string().min(2, "Nombre de la aplicación requerido"),
+  clientId: z.string().min(5, "Client ID obligatorio"),
+  clientSecret: z.string().min(5, "Client Secret obligatorio"),
+  redirectUri: z.string().url("URL de redirección inválida"),
+});
+export type RegisterProviderAppInput = z.infer<typeof RegisterProviderAppSchema>;
+
+// ==========================================
+// Provider Engine & Connected Accounts
 // ==========================================
 export const ProviderTypeSchema = z.enum(["google", "microsoft"]);
 export type ProviderType = z.infer<typeof ProviderTypeSchema>;
@@ -41,6 +109,7 @@ export const ConnectedAccountStatusSchema = z.enum([
   "active",
   "expired",
   "revoked",
+  "error",
   "rate_limited",
 ]);
 export type ConnectedAccountStatus = z.infer<typeof ConnectedAccountStatusSchema>;
@@ -48,6 +117,7 @@ export type ConnectedAccountStatus = z.infer<typeof ConnectedAccountStatusSchema
 export const ConnectedAccountSummarySchema = z.object({
   id: z.string(),
   userId: z.string(),
+  projectId: z.string().nullable().optional(),
   email: z.string().email(),
   name: z.string().nullable(),
   avatar: z.string().nullable(),
@@ -58,6 +128,40 @@ export const ConnectedAccountSummarySchema = z.object({
   createdAt: z.date(),
 });
 export type ConnectedAccountSummary = z.infer<typeof ConnectedAccountSummarySchema>;
+
+// ==========================================
+// Provisioning Engine Contracts
+// ==========================================
+export const ProvisioningJobStatusSchema = z.enum([
+  "QUEUED",
+  "PROCESSING",
+  "COMPLETED",
+  "FAILED",
+  "DEAD_LETTER",
+]);
+export type ProvisioningJobStatus = z.infer<typeof ProvisioningJobStatusSchema>;
+
+export const ProvisionAccountInputSchema = z.object({
+  userId: z.string(),
+  provider: ProviderTypeSchema,
+  authCode: z.string(),
+  redirectUri: z.string(),
+  providerAppId: z.string().optional(),
+  projectId: z.string().optional(),
+});
+export type ProvisionAccountInput = z.infer<typeof ProvisionAccountInputSchema>;
+
+// ==========================================
+// Quotas & Usage Metrics
+// ==========================================
+export const QuotaAllocationSchema = z.object({
+  userId: z.string(),
+  maxConnectedAccounts: z.number().default(3),
+  maxDailySends: z.number().default(300),
+  maxStorageBytes: z.bigint().default(BigInt(5368709120)),
+  currentStorageBytes: z.bigint().default(BigInt(0)),
+});
+export type QuotaAllocation = z.infer<typeof QuotaAllocationSchema>;
 
 // ==========================================
 // Mail Engine Contracts

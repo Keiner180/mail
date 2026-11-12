@@ -19,10 +19,14 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@jabvox/contracts": ["./packages/contracts/dist/index"],
+      "@jabvox/security": ["./packages/security/dist/index"],
+      "@jabvox/database": ["./packages/database/dist/index"],
+      "@jabvox/providers-core": ["./packages/providers/core/dist/index"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }
 

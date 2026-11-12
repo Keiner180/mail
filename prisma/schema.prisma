@@ -7,21 +7,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// -------------------------------------------------------------
+// 1. IDENTIDAD Y AISLAMIENTO DE USUARIO (CUENTA INDEPENDIENTE)
+// -------------------------------------------------------------
+
 model User {
-  id             String               @id @default(cuid())
-  name           String
-  lastName       String
-  email          String               @unique
-  passwordHash   String
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  id                 String             @id @default(cuid())
+  email              String             @unique
+  passwordHash       String
+  name               String
+  lastName           String
+  avatar             String?
+  role               String             @default("USER") // USER, PLATFORM_ADMIN, SUPPORT_AGENT
+  status             String             @default("ACTIVE") // PENDING_ACTIVATION, ACTIVE, SUSPENDED, ARCHIVED
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
-  sessions       Session[]
-  passwordResets PasswordResetToken[]
-  accounts       ConnectedAccount[]
-  calendarEvents CalendarEvent[]
+  settings           UserSettings?
+  sessions           Session[]
+  passwordResets     PasswordResetToken[]
+  accounts           ConnectedAccount[]
+  calendarEvents     CalendarEvent[]
+  tenantMemberships  TenantMembership[]
+  auditLogs          AuditLog[]
+  provisioningJobs   ProvisioningJob[]
+  quotaAllocation    QuotaAllocation?
 
+  @@index([email])
+  @@index([status])
   @@map("users")
+}
+
+model UserSettings {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timeZone            String   @default("UTC")
+  language            String   @default("es")
+  theme               String   @default("light")
+  emailSignature      String?  @db.Text
+  autoSyncIntervalSec Int      @default(300) // 5 minutos
+  notifyNewEmails     Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+
+  @@map("user_settings")
 }
 
 model Session {
@@ -53,49 +82,273 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+// -------------------------------------------------------------
+// 2. MODELO MULTI-TENANT (EMPRESAS / B2B OPCIONAL)
+// -------------------------------------------------------------
+
+model Tenant {
+  id             String             @id @default(cuid())
+  slug           String             @unique
+  name           String
+  status         String             @default("ACTIVE") // TRIAL, ACTIVE, PAST_DUE, SUSPENDED, CANCELLED
+  tier           String             @default("FREE")   // FREE, STARTER, PROFESSIONAL, ENTERPRISE
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  memberships    TenantMembership[]
+  projects       Project[]
+  billingProfile BillingProfile?
+  subscription   Subscription?
+  auditLogs      AuditLog[]
+
+  @@map("tenants")
+}
+
+model TenantMembership {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER") // OWNER, ADMIN, MEMBER, VIEWER
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId])
+  @@map("tenant_memberships")
+}
+
+// -------------------------------------------------------------
+// 3. PROYECTOS Y APLICACIONES DE PROVEEDOR (MODELOS A, B Y C)
+// -------------------------------------------------------------
+
+model Project {
+  id             String                  @id @default(cuid())
+  tenantId       String
+  tenant         Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name           String
+  projectNumber  String                  @unique // Identificador único estilo Google Cloud (p.ej. jbx-94821)
+  status         String                  @default("ACTIVE") // INITIALIZING, ACTIVE, SUSPENDED, DISABLED
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  serviceConfigs ServiceConfiguration[]
+  providerApps   ProviderApplication[]
+  accounts       ConnectedAccount[]
+
+  @@index([tenantId])
+  @@map("projects")
+}
+
+model ProviderApplication {
+  id                  String             @id @default(cuid())
+  projectId           String?            // Null si es la App Maestra global de Jabvox (Modelo A/B)
+  project             Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  provider            String             // GOOGLE o MICROSOFT
+  applicationType     String             @default("MANAGED_MASTER") // MANAGED_MASTER, MANAGED_POOL, CUSTOM_BYO
+  name                String
+  clientId            String
+  clientSecretEnc     String             @db.Text // Cifrado AES-256-GCM
+  redirectUri         String
+  isVerified          Boolean            @default(false)
+  currentAccountCount Int                @default(0) // Balanceador de cuotas entre apps
+  maxAccountLimit     Int                @default(5000)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  accounts            ConnectedAccount[]
+
+  @@unique([provider, clientId])
+  @@index([provider, applicationType])
+  @@map("provider_applications")
+}
+
+// -------------------------------------------------------------
+// 4. BUZONES Y CALENDARIOS INDEPENDIENTES (POR USUARIO)
+// -------------------------------------------------------------
+
 model ConnectedAccount {
-  id              String    @id @default(cuid())
+  id              String               @id @default(cuid())
   userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider        String    @default("google")
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId       String?              // Opcional para usuarios B2B
+  project         Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  providerAppId   String?
+  providerApp     ProviderApplication? @relation(fields: [providerAppId], references: [id], onDelete: SetNull)
+
+  provider        String               @default("google") // google, microsoft
   email           String
   name            String?
   avatar          String?
-  accessTokenEnc  String
-  refreshTokenEnc String
-  scope           String?
+  accessTokenEnc  String               @db.Text
+  refreshTokenEnc String               @db.Text
+  scope           String?              @db.Text
   tokenExpiresAt  DateTime?
-  status          String    @default("active") // active, expired, revoked, error
+  status          String               @default("active") // active, expired, revoked, error, rate_limited
   lastSyncAt      DateTime?
-  isDefault       Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  lastSyncError   String?              @db.Text
+  syncCursor      String?              // historyId en Gmail o deltaLink en Graph
+  isDefault       Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  oauthToken      OAuthToken?
+  calendarEvents  CalendarEvent[]
+  usageMetrics    UsageMetric[]
 
   @@unique([userId, email])
   @@index([userId])
+  @@index([provider, status])
   @@map("connected_accounts")
 }
 
+model OAuthToken {
+  id              String           @id @default(cuid())
+  accountId       String           @unique
+  account         ConnectedAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accessTokenEnc  String           @db.Text // AES-256-GCM
+  refreshTokenEnc String           @db.Text // AES-256-GCM
+  tokenType       String           @default("Bearer")
+  scope           String           @db.Text
+  expiresAt       DateTime
+  encryptionIv    String           // Vector de inicialización por token
+  encryptionTag   String           // Tag de autenticación GCM
+  keyId           String           @default("v1") // Versión de clave criptográfica
+  updatedAt       DateTime         @updatedAt
+
+  @@map("oauth_tokens")
+}
 
 model CalendarEvent {
-  id             String    @id @default(cuid())
+  id             String            @id @default(cuid())
   userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId      String?
+  account        ConnectedAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   googleEventId  String?
+  externalId     String?
   summary        String
-  description    String?
+  description    String?           @db.Text
   location       String?
   start          DateTime
   end            DateTime
-  isAllDay       Boolean   @default(false)
+  isAllDay       Boolean           @default(false)
   meetUrl        String?
-  colorId        String?   @default("7")
-  attendees      String?   // JSON array string of attendees
-  status         String    @default("confirmed")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  colorId        String?           @default("7")
+  attendees      String?           @db.Text // JSON string
+  status         String            @default("confirmed")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   @@index([userId])
   @@index([start])
+  @@index([accountId])
   @@map("calendar_events")
+}
+
+// -------------------------------------------------------------
+// 5. MOTOR DE CUOTAS, AUDITORÍA Y FACTURACIÓN
+// -------------------------------------------------------------
+
+model QuotaAllocation {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  maxConnectedAccounts Int     @default(3)
+  maxDailySends       Int      @default(300)
+  maxStorageBytes     BigInt   @default(5368709120) // 5 GB
+  currentStorageBytes  BigInt   @default(0)
+  updatedAt           DateTime @updatedAt
+
+  @@map("quota_allocations")
+}
+
+model UsageMetric {
+  id            String           @id @default(cuid())
+  accountId     String
+  account       ConnectedAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  metricType    String           // EMAIL_FETCH, EMAIL_SEND, CALENDAR_SYNC, MEET_CREATE
+  unitsConsumed Int              @default(1)
+  timestamp     DateTime         @default(now())
+
+  @@index([accountId, timestamp])
+  @@map("usage_metrics")
+}
+
+model ProvisioningJob {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  operation   String   // INITIALIZE_USER, BIND_PROVIDER, SYNC_INBOX, REVOKE_ACCOUNT
+  status      String   @default("QUEUED") // QUEUED, PROCESSING, COMPLETED, FAILED, DEAD_LETTER
+  payloadJson String   @db.Text
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(5)
+  lastError   String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId])
+  @@map("provisioning_jobs")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenantId     String?
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  action       String   // USER_LOGIN, TOKEN_REFRESH, EMAIL_DISPATCHED, BYO_APP_CREATED
+  ipAddress    String?
+  userAgent    String?
+  metadataJson String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
+}
+
+model BillingProfile {
+  id         String   @id @default(cuid())
+  tenantId   String   @unique
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider   String   // STRIPE, WOMPI
+  customerId String
+  taxId      String?
+  currency   String   @default("USD")
+  isVerified Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+
+  @@map("billing_profiles")
+}
+
+model Subscription {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planCode           String
+  status             String
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+model ServiceConfiguration {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  serviceName  String   // SERVICE_MAIL, SERVICE_CALENDAR, SERVICE_MEET
+  isEnabled    Boolean  @default(true)
+  settingsJson String?  @db.Text
+  updatedAt    DateTime @updatedAt
+
+  @@unique([projectId, serviceName])
+  @@map("service_configurations")
 }
