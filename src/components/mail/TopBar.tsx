@@ -226,14 +226,14 @@ export default function TopBar({
 
       {/* Right: Quick Links, Refresh, Account Switcher & User Profile */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        {/* Quick Link to Cloud Console */}
+        {/* Quick Link to SaaS Plans & Quotas */}
         <Link
           href="/console"
           className="p-2 rounded-xl hover:bg-emerald-50 text-emerald-700 hover:text-emerald-800 transition-all border border-emerald-100 shadow-2xs flex items-center gap-1.5"
-          title="Consola de Aprovisionamiento y Recursos"
+          title="Gestión de Planes y Capacidad de Cuentas"
         >
           <Layers className="w-4 h-4 text-emerald-600" />
-          <span className="hidden xl:inline text-xs font-bold">Consola Cloud</span>
+          <span className="hidden xl:inline text-xs font-bold">Planes & Empresa</span>
         </Link>
 
         {/* Quick Link to Google Calendar */}
@@ -436,7 +436,7 @@ export default function TopBar({
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-emerald-800 hover:bg-emerald-50 transition-colors"
                 >
                   <Layers className="w-4 h-4 text-emerald-600" />
-                  <span>Consola Cloud (Recursos & BYO)</span>
+                  <span>Planes & Capacidad SaaS</span>
                 </Link>
 
                 <Link

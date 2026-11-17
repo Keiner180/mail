@@ -131,15 +131,25 @@ export class ProvisioningEngine {
     }
 
     if (action === "CONNECT_ACCOUNT") {
+      // Si maxConnectedAccounts es -1, la empresa o cuenta tiene cuentas ilimitadas
+      if (quota.maxConnectedAccounts === -1) {
+        return true;
+      }
+
       const count = await db.connectedAccount.count({
         where: { userId, status: { in: ["active", "rate_limited"] } },
       });
       if (count >= quota.maxConnectedAccounts) {
         throw new Error(
-          `Límite de cuentas alcanzado (${count}/${quota.maxConnectedAccounts}). Actualice su plan para conectar más cuentas.`
+          `Has alcanzado el límite de ${quota.maxConnectedAccounts} cuentas de tu plan (${count}/${quota.maxConnectedAccounts}). Actualiza a un plan superior (ej: Plan 10 Cuentas o Enterprise Ilimitado) para conectar más cuentas.`
         );
       }
     } else if (action === "SEND_EMAIL") {
+      // Si maxDailySends es -1, envíos ilimitados
+      if (quota.maxDailySends === -1) {
+        return true;
+      }
+
       // Verificar envíos en las últimas 24 horas
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const userAccounts = await db.connectedAccount.findMany({
@@ -160,7 +170,7 @@ export class ProvisioningEngine {
       const totalSent = sendsToday._sum.unitsConsumed || 0;
       if (totalSent >= quota.maxDailySends) {
         throw new Error(
-          `Límite diario de envíos alcanzado (${totalSent}/${quota.maxDailySends} en 24h). Intente nuevamente mañana o aumente su cuota.`
+          `Límite diario alcanzado (${totalSent}/${quota.maxDailySends} envíos en 24h). Actualiza a un plan superior para aumentar tus envíos diarios.`
         );
       }
     }
