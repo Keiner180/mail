@@ -90,16 +90,20 @@ model Tenant {
   id             String             @id @default(cuid())
   slug           String             @unique
   name           String
-  status         String             @default("ACTIVE") // TRIAL, ACTIVE, PAST_DUE, SUSPENDED, CANCELLED
-  tier           String             @default("FREE")   // FREE, STARTER, PROFESSIONAL, ENTERPRISE
+  status         String             @default("ACTIVE") // ACTIVE, SUSPENDED, CANCELLED
+  tier           String             @default("PRO_10") // STARTER, PRO_10, BUSINESS_25, ENTERPRISE
+  maxAccounts    Int                @default(10)       // Cuentas permitidas (ej: 10, o -1 para ilimitadas)
+  maxDailySends  Int                @default(2500)     // Envíos diarios permitidos (o -1 para ilimitados)
+  contactEmail   String?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
-  memberships    TenantMembership[]
-  projects       Project[]
-  billingProfile BillingProfile?
-  subscription   Subscription?
-  auditLogs      AuditLog[]
+  memberships       TenantMembership[]
+  connectedAccounts ConnectedAccount[]
+  projects          Project[]
+  billingProfile    BillingProfile?
+  subscription      Subscription?
+  auditLogs         AuditLog[]
 
   @@map("tenants")
 }
@@ -173,6 +177,8 @@ model ConnectedAccount {
   id              String               @id @default(cuid())
   userId          String
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId        String?              // Empresa a la que pertenece la cuenta
+  tenant          Tenant?              @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   projectId       String?              // Opcional para usuarios B2B
   project         Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
   providerAppId   String?

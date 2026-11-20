@@ -66,6 +66,7 @@ export interface AuthUser {
   name: string;
   lastName: string;
   email: string;
+  role: string;
 }
 
 export async function getSessionUser(): Promise<AuthUser | null> {
@@ -84,6 +85,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
             name: true,
             lastName: true,
             email: true,
+            role: true,
           },
         },
       },

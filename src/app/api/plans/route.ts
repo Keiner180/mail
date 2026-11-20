@@ -51,12 +51,9 @@ export async function GET(req: NextRequest) {
 
     await ProvisioningEngine.initializeUser(user.id);
 
-    const [quota, connectedCount, tenantMembership] = await Promise.all([
+    const [quota, tenantMembership] = await Promise.all([
       db.quotaAllocation.findUnique({
         where: { userId: user.id },
-      }),
-      db.connectedAccount.count({
-        where: { userId: user.id, status: { in: ["active", "rate_limited"] } },
       }),
       db.tenantMembership.findFirst({
         where: { userId: user.id },
@@ -64,30 +61,47 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    // Determinar plan actual basado en maxConnectedAccounts
-    const maxAcc = quota?.maxConnectedAccounts ?? 5;
-    let currentPlanId = "STARTER";
+    const tenant = tenantMembership?.tenant;
+
+    // Contar las cuentas de la empresa
+    const connectedCount = tenant
+      ? await db.connectedAccount.count({
+          where: { tenantId: tenant.id, status: { in: ["active", "rate_limited"] } },
+        })
+      : await db.connectedAccount.count({
+          where: { userId: user.id, status: { in: ["active", "rate_limited"] } },
+        });
+
+    // La cuota de cuentas la dicta el Tenant de la Empresa asignado por Super Admin
+    const maxAcc = tenant ? tenant.maxAccounts : (quota?.maxConnectedAccounts ?? 10);
+    const maxSends = tenant ? tenant.maxDailySends : (quota?.maxDailySends ?? 2500);
+
+    let currentPlanId = "PRO_10";
     if (maxAcc === -1) {
       currentPlanId = "ENTERPRISE";
     } else if (maxAcc >= 25) {
       currentPlanId = "BUSINESS_25";
     } else if (maxAcc >= 10) {
       currentPlanId = "PRO_10";
+    } else {
+      currentPlanId = "STARTER";
     }
 
     return NextResponse.json({
       success: true,
+      userRole: user.role,
       currentPlan: {
         planId: currentPlanId,
         maxAccounts: maxAcc,
         isUnlimited: maxAcc === -1,
-        maxDailySends: quota?.maxDailySends ?? 500,
+        maxDailySends: maxSends,
         connectedCount,
         remainingAccounts: maxAcc === -1 ? "Ilimitadas" : Math.max(0, maxAcc - connectedCount),
       },
-      tenant: tenantMembership?.tenant || {
-        name: `Espacio de ${user.name}`,
+      tenant: tenant || {
+        name: `Empresa de ${user.name}`,
         tier: currentPlanId,
+        maxAccounts: maxAcc,
       },
       availablePlans: SAAS_PLANS,
     });

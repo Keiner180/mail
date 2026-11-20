@@ -46,10 +46,39 @@ export class ProvisioningEngine {
       await db.quotaAllocation.create({
         data: {
           userId,
-          maxConnectedAccounts: 5,
-          maxDailySends: 500,
-          maxStorageBytes: BigInt(10 * 1024 * 1024 * 1024), // 10 GB
+          maxConnectedAccounts: 10,
+          maxDailySends: 2500,
+          maxStorageBytes: BigInt(50 * 1024 * 1024 * 1024), // 50 GB
           currentStorageBytes: BigInt(0),
+        },
+      });
+    }
+
+    // Asegurar que el usuario pertenezca a una Empresa (Tenant)
+    const membership = await db.tenantMembership.findFirst({
+      where: { userId },
+      include: { tenant: true },
+    });
+
+    if (!membership) {
+      const slug = `empresa-${user.id.slice(-6)}-${Date.now().toString(36)}`;
+      const tenant = await db.tenant.create({
+        data: {
+          name: `Empresa de ${user.name} ${user.lastName}`.trim(),
+          slug,
+          tier: "PRO_10",
+          maxAccounts: 10, // 10 cuentas de Google/Microsoft por defecto
+          maxDailySends: 2500,
+          status: "ACTIVE",
+          contactEmail: user.email,
+        },
+      });
+
+      await db.tenantMembership.create({
+        data: {
+          tenantId: tenant.id,
+          userId,
+          role: "OWNER",
         },
       });
     }
@@ -127,33 +156,47 @@ export class ProvisioningEngine {
 
     if (!quota) {
       await this.initializeUser(userId);
-      return true;
     }
 
+    const membership = await db.tenantMembership.findFirst({
+      where: { userId },
+      include: { tenant: true },
+    });
+
+    const tenant = membership?.tenant;
+    const maxAccounts = tenant ? tenant.maxAccounts : (quota?.maxConnectedAccounts ?? 10);
+    const maxDailySends = tenant ? tenant.maxDailySends : (quota?.maxDailySends ?? 2500);
+
     if (action === "CONNECT_ACCOUNT") {
-      // Si maxConnectedAccounts es -1, la empresa o cuenta tiene cuentas ilimitadas
-      if (quota.maxConnectedAccounts === -1) {
+      // Si maxAccounts es -1, la empresa tiene cuentas ilimitadas
+      if (maxAccounts === -1) {
         return true;
       }
 
-      const count = await db.connectedAccount.count({
-        where: { userId, status: { in: ["active", "rate_limited"] } },
-      });
-      if (count >= quota.maxConnectedAccounts) {
+      // Contar cuentas conectadas de la empresa
+      const count = tenant
+        ? await db.connectedAccount.count({
+            where: { tenantId: tenant.id, status: { in: ["active", "rate_limited"] } },
+          })
+        : await db.connectedAccount.count({
+            where: { userId, status: { in: ["active", "rate_limited"] } },
+          });
+
+      if (count >= maxAccounts) {
         throw new Error(
-          `Has alcanzado el límite de ${quota.maxConnectedAccounts} cuentas de tu plan (${count}/${quota.maxConnectedAccounts}). Actualiza a un plan superior (ej: Plan 10 Cuentas o Enterprise Ilimitado) para conectar más cuentas.`
+          `Tu empresa "${tenant?.name || "tu cuenta"}" ha alcanzado el límite de ${maxAccounts} cuentas asignadas en su plan (${count}/${maxAccounts}). Contacta al Super Administrador para ampliar la capacidad de tu empresa.`
         );
       }
     } else if (action === "SEND_EMAIL") {
       // Si maxDailySends es -1, envíos ilimitados
-      if (quota.maxDailySends === -1) {
+      if (maxDailySends === -1) {
         return true;
       }
 
       // Verificar envíos en las últimas 24 horas
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const userAccounts = await db.connectedAccount.findMany({
-        where: { userId },
+        where: tenant ? { tenantId: tenant.id } : { userId },
         select: { id: true },
       });
       const accountIds = userAccounts.map((a) => a.id);
@@ -168,9 +211,9 @@ export class ProvisioningEngine {
       });
 
       const totalSent = sendsToday._sum.unitsConsumed || 0;
-      if (totalSent >= quota.maxDailySends) {
+      if (totalSent >= maxDailySends) {
         throw new Error(
-          `Límite diario alcanzado (${totalSent}/${quota.maxDailySends} envíos en 24h). Actualiza a un plan superior para aumentar tus envíos diarios.`
+          `Tu empresa ha alcanzado el límite diario de ${maxDailySends} envíos (${totalSent}/${maxDailySends}). Contacta al Super Administrador para aumentar la cuota de envíos.`
         );
       }
     }
@@ -210,6 +253,12 @@ export class ProvisioningEngine {
 
     const isFirstAccount = !existingDefault;
 
+    // Obtener la empresa del usuario
+    const userMembership = await db.tenantMembership.findFirst({
+      where: { userId: params.userId },
+    });
+    const tenantId = userMembership?.tenantId || null;
+
     // Transacción atómica
     const account = await db.$transaction(async (tx) => {
       const existingAccount = await tx.connectedAccount.findUnique({
@@ -240,11 +289,13 @@ export class ProvisioningEngine {
           tokenExpiresAt: params.tokenExpiresAt || undefined,
           status: "active",
           lastSyncError: null,
+          tenantId: tenantId || undefined,
           providerAppId: app.id,
           projectId: params.projectId || undefined,
         },
         create: {
           userId: params.userId,
+          tenantId: tenantId || null,
           provider: params.provider,
           email: params.email,
           name: params.name || null,

@@ -43,6 +43,7 @@ export default function SaaSConsolePage() {
   const [availablePlans, setAvailablePlans] = useState<PlanInfo[]>([]);
   const [tenant, setTenant] = useState<any>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [userRole, setUserRole] = useState<string>("USER");
 
   // Custom Quota input state
   const [customAccounts, setCustomAccounts] = useState<string>("10");
@@ -66,6 +67,7 @@ export default function SaaSConsolePage() {
         setCurrentPlan(data.currentPlan);
         setAvailablePlans(data.availablePlans || []);
         setTenant(data.tenant);
+        setUserRole(data.userRole || "USER");
         if (data.currentPlan.isUnlimited) {
           setIsUnlimitedChecked(true);
           setCustomAccounts("-1");
@@ -177,6 +179,16 @@ export default function SaaSConsolePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {(userRole === "SUPER_ADMIN" || userRole === "PLATFORM_ADMIN") && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-950 text-emerald-400 hover:bg-emerald-900 border border-emerald-800 transition-all shadow-xs"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Panel Super Admin</span>
+            </Link>
+          )}
+
           <Link
             href="/mail"
             className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-[#15605A] text-white hover:bg-[#114b46] transition-all shadow-xs"
@@ -196,6 +208,31 @@ export default function SaaSConsolePage() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 max-w-6xl w-full mx-auto space-y-6">
+        {/* Super Admin Notice Banner */}
+        {(userRole === "SUPER_ADMIN" || userRole === "PLATFORM_ADMIN") && (
+          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wide">
+                  Modo Super Administrador Activo
+                </div>
+                <div className="text-xs text-slate-300">
+                  Puedes crear empresas, cambiar planes y asignar límites personalizados desde el panel central.
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href="/admin"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs"
+            >
+              <span>Gestionar Empresas & Planes &rarr;</span>
+            </Link>
+          </div>
+        )}
         {/* Alerts */}
         {message && (
           <div
