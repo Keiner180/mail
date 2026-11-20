@@ -421,6 +421,17 @@ export default function TopBar({
               </div>
 
               <div className="space-y-1">
+                {(user.role === "SUPER_ADMIN" || user.role === "PLATFORM_ADMIN") && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200/60"
+                  >
+                    <ShieldAlert className="w-4 h-4 text-emerald-600" />
+                    <span>Panel Super Admin</span>
+                  </Link>
+                )}
+
                 <Link
                   href="/calendar"
                   onClick={() => setShowUserMenu(false)}
@@ -437,15 +448,6 @@ export default function TopBar({
                 >
                   <Settings className="w-4 h-4 text-gray-400" />
                   <span>Cuentas Vinculadas & Perfil</span>
-                </Link>
-
-                <Link
-                  href="/profile"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                >
-                  <Settings className="w-4 h-4 text-gray-400" />
-                  <span>Configuración y Cuentas</span>
                 </Link>
 
                 <button
