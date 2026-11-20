@@ -227,28 +227,6 @@ export default function TopBar({
 
       {/* Right: Quick Links, Refresh, Account Switcher & User Profile */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        {/* Super Admin Quick Link */}
-        {(user.role === "SUPER_ADMIN" || user.role === "PLATFORM_ADMIN") && (
-          <Link
-            href="/admin"
-            className="p-2 rounded-xl bg-slate-900 text-emerald-400 hover:bg-slate-800 transition-all border border-slate-700 shadow-2xs flex items-center gap-1.5"
-            title="Panel de Super Administrador (Gestionar Empresas y Planes)"
-          >
-            <ShieldAlert className="w-4 h-4 text-emerald-400" />
-            <span className="hidden xl:inline text-xs font-bold">Super Admin</span>
-          </Link>
-        )}
-
-        {/* Quick Link to SaaS Plans & Quotas */}
-        <Link
-          href="/console"
-          className="p-2 rounded-xl hover:bg-emerald-50 text-emerald-700 hover:text-emerald-800 transition-all border border-emerald-100 shadow-2xs flex items-center gap-1.5"
-          title="Gestión de Planes y Capacidad de Cuentas"
-        >
-          <Layers className="w-4 h-4 text-emerald-600" />
-          <span className="hidden xl:inline text-xs font-bold">Mi Empresa</span>
-        </Link>
-
         {/* Quick Link to Google Calendar */}
         <Link
           href="/calendar"
@@ -443,26 +421,6 @@ export default function TopBar({
               </div>
 
               <div className="space-y-1">
-                {(user.role === "SUPER_ADMIN" || user.role === "PLATFORM_ADMIN") && (
-                  <Link
-                    href="/admin"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 transition-colors"
-                  >
-                    <ShieldAlert className="w-4 h-4 text-emerald-600" />
-                    <span>Panel Super Admin (Empresas)</span>
-                  </Link>
-                )}
-
-                <Link
-                  href="/console"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-emerald-800 hover:bg-emerald-50 transition-colors"
-                >
-                  <Layers className="w-4 h-4 text-emerald-600" />
-                  <span>Mi Empresa & Plan</span>
-                </Link>
-
                 <Link
                   href="/calendar"
                   onClick={() => setShowUserMenu(false)}
@@ -470,6 +428,15 @@ export default function TopBar({
                 >
                   <Calendar className="w-4 h-4 text-blue-600" />
                   <span>Google Calendar</span>
+                </Link>
+
+                <Link
+                  href="/profile"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <Settings className="w-4 h-4 text-gray-400" />
+                  <span>Cuentas Vinculadas & Perfil</span>
                 </Link>
 
                 <Link

@@ -144,80 +144,13 @@ export class ProvisioningEngine {
   }
 
   /**
-   * Valida las cuotas del usuario antes de permitir una acción
+   * Valida que el usuario pueda conectar cuentas o enviar correos
+   * (Incluido libremente en la suscripción de Jabvox sin límites artificiales)
    */
   static async assertQuota(
     userId: string,
     action: "CONNECT_ACCOUNT" | "SEND_EMAIL"
   ): Promise<boolean> {
-    const quota = await db.quotaAllocation.findUnique({
-      where: { userId },
-    });
-
-    if (!quota) {
-      await this.initializeUser(userId);
-    }
-
-    const membership = await db.tenantMembership.findFirst({
-      where: { userId },
-      include: { tenant: true },
-    });
-
-    const tenant = membership?.tenant;
-    const maxAccounts = tenant ? tenant.maxAccounts : (quota?.maxConnectedAccounts ?? 10);
-    const maxDailySends = tenant ? tenant.maxDailySends : (quota?.maxDailySends ?? 2500);
-
-    if (action === "CONNECT_ACCOUNT") {
-      // Si maxAccounts es -1, la empresa tiene cuentas ilimitadas
-      if (maxAccounts === -1) {
-        return true;
-      }
-
-      // Contar cuentas conectadas de la empresa
-      const count = tenant
-        ? await db.connectedAccount.count({
-            where: { tenantId: tenant.id, status: { in: ["active", "rate_limited"] } },
-          })
-        : await db.connectedAccount.count({
-            where: { userId, status: { in: ["active", "rate_limited"] } },
-          });
-
-      if (count >= maxAccounts) {
-        throw new Error(
-          `Tu empresa "${tenant?.name || "tu cuenta"}" ha alcanzado el límite de ${maxAccounts} cuentas asignadas en su plan (${count}/${maxAccounts}). Contacta al Super Administrador para ampliar la capacidad de tu empresa.`
-        );
-      }
-    } else if (action === "SEND_EMAIL") {
-      // Si maxDailySends es -1, envíos ilimitados
-      if (maxDailySends === -1) {
-        return true;
-      }
-
-      // Verificar envíos en las últimas 24 horas
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const userAccounts = await db.connectedAccount.findMany({
-        where: tenant ? { tenantId: tenant.id } : { userId },
-        select: { id: true },
-      });
-      const accountIds = userAccounts.map((a) => a.id);
-
-      const sendsToday = await db.usageMetric.aggregate({
-        where: {
-          accountId: { in: accountIds },
-          metricType: "EMAIL_SEND",
-          timestamp: { gte: oneDayAgo },
-        },
-        _sum: { unitsConsumed: true },
-      });
-
-      const totalSent = sendsToday._sum.unitsConsumed || 0;
-      if (totalSent >= maxDailySends) {
-        throw new Error(
-          `Tu empresa ha alcanzado el límite diario de ${maxDailySends} envíos (${totalSent}/${maxDailySends}). Contacta al Super Administrador para aumentar la cuota de envíos.`
-        );
-      }
-    }
-
     return true;
   }
 
