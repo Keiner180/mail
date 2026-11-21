@@ -54,10 +54,20 @@ export async function removeSessionCookie(): Promise<void> {
   const rawToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (rawToken) {
     const tokenHash = hashToken(rawToken);
-    await db.session.deleteMany({
-      where: { token: tokenHash },
-    });
+    await db.session
+      .deleteMany({
+        where: { token: tokenHash },
+      })
+      .catch(() => {});
   }
+  cookieStore.set(SESSION_COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: new Date(0),
+    maxAge: 0,
+  });
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
 

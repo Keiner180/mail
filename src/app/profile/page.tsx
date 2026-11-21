@@ -398,7 +398,12 @@ export default function ProfilePage() {
           ) : (
             <div className="divide-y divide-gray-100">
               {accounts.map((acc) => {
-                const isMs = acc.provider === "microsoft" || acc.provider === "outlook";
+                const isMs =
+                  acc.provider === "microsoft" ||
+                  acc.provider === "outlook" ||
+                  acc.email.endsWith("@outlook.com") ||
+                  acc.email.endsWith("@hotmail.com") ||
+                  acc.email.endsWith("@live.com");
 
                 return (
                   <div key={acc.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">

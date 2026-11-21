@@ -16,6 +16,7 @@ export async function GET() {
         email: true,
         name: true,
         avatar: true,
+        provider: true,
         status: true,
         isDefault: true,
         lastSyncAt: true,

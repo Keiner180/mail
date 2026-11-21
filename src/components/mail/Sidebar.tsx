@@ -29,6 +29,7 @@ interface SidebarProps {
   unreadCount?: number;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
+  provider?: string;
 }
 
 const NAV_ITEMS: {
@@ -52,7 +53,9 @@ export default function Sidebar({
   unreadCount = 0,
   isOpenMobile = false,
   onCloseMobile,
+  provider,
 }: SidebarProps) {
+  const isMicrosoft = provider === "microsoft" || provider === "outlook";
   const content = (
     <div className="w-64 h-full flex flex-col justify-between py-5 select-none bg-[#f8fafc]/90 border-r border-slate-200/80">
       <div>
@@ -121,14 +124,26 @@ export default function Sidebar({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    isMicrosoft ? "bg-blue-400" : "bg-emerald-400"
+                  }`}
+                ></span>
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 ${
+                    isMicrosoft ? "bg-blue-600" : "bg-emerald-500"
+                  }`}
+                ></span>
               </span>
               <span className="text-[11px] font-bold text-slate-800 tracking-tight">
-                Gmail API Oficial
+                {isMicrosoft ? "Microsoft Graph Oficial" : "Google Gmail Oficial"}
               </span>
             </div>
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <ShieldCheck
+              className={`w-3.5 h-3.5 ${
+                isMicrosoft ? "text-blue-600" : "text-emerald-600"
+              }`}
+            />
           </div>
 
           <div className="flex items-center gap-1.5 text-[10px] text-slate-500">

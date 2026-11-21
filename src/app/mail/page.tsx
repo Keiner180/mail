@@ -17,6 +17,7 @@ interface Account {
   email: string;
   name: string | null;
   avatar: string | null;
+  provider?: string;
   status: string;
   isDefault: boolean;
 }
@@ -512,6 +513,7 @@ function MailDashboardContent() {
           <Sidebar
             currentFolder={currentFolder}
             onSelectFolder={handleSelectFolder}
+            provider={activeAccount?.provider}
             onOpenCompose={() => {
               if (!activeAccount && accounts.length === 0) {
                 setBanner({

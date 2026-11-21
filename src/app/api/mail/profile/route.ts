@@ -27,7 +27,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Cuenta no encontrada" }, { status: 404 });
     }
 
-    const profile = await getAccountProfile(account);
+    const isMicrosoft = account.provider === "microsoft" || account.provider === "outlook";
+    let profile;
+
+    if (isMicrosoft) {
+      profile = {
+        emailAddress: account.email,
+        messagesTotal: 0,
+        threadsTotal: 0,
+        historyId: account.syncCursor || "0",
+      };
+    } else {
+      profile = await getAccountProfile(account);
+    }
 
     return NextResponse.json({
       profile,
@@ -36,6 +48,7 @@ export async function GET(req: NextRequest) {
         email: account.email,
         name: account.name,
         avatar: account.avatar,
+        provider: account.provider,
         status: account.status,
       },
     });

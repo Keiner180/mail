@@ -118,10 +118,10 @@ export default function TopBar({
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/auth/login");
-      router.refresh();
     } catch (err) {
       console.error("Logout failed:", err);
+    } finally {
+      window.location.href = "/auth/login";
     }
   };
 
@@ -146,8 +146,19 @@ export default function TopBar({
     }
   };
 
-  const isMicrosoftAccount = (acc: Account | null) =>
-    acc?.provider === "microsoft" || acc?.provider === "outlook";
+  const isMicrosoftAccount = (acc: Account | null) => {
+    if (!acc) return false;
+    if (acc.provider === "microsoft" || acc.provider === "outlook") return true;
+    const lower = acc.email?.toLowerCase() || "";
+    return (
+      lower.endsWith("@outlook.com") ||
+      lower.endsWith("@hotmail.com") ||
+      lower.endsWith("@live.com") ||
+      lower.endsWith("@msn.com")
+    );
+  };
+
+  const isMsActive = isMicrosoftAccount(activeAccount);
 
   return (
     <header className="h-14 min-h-14 bg-[#FAFBFB] border-b border-gray-200/90 px-3 md:px-5 flex items-center justify-between gap-3 sticky top-0 z-30 select-none">
@@ -163,7 +174,11 @@ export default function TopBar({
           </button>
         )}
 
-        <div className="w-8 h-8 rounded-xl bg-[#15605A]/10 text-[#15605A] flex items-center justify-center flex-shrink-0 shadow-2xs">
+        <div
+          className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-colors ${
+            isMsActive ? "bg-[#0078d4]/10 text-[#0078d4]" : "bg-[#15605A]/10 text-[#15605A]"
+          }`}
+        >
           <Mail className="w-4 h-4" />
         </div>
         <div className="hidden sm:block">
@@ -171,13 +186,23 @@ export default function TopBar({
             <span className="font-extrabold text-gray-900 text-xs tracking-tight block leading-tight">
               Correo
             </span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-bold border border-emerald-200 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {isMicrosoftAccount(activeAccount) ? "Outlook Graph" : "Gmail API"}
+            <span
+              className={`px-2 py-0.5 rounded-full text-[9px] font-bold border flex items-center gap-1 transition-colors ${
+                isMsActive
+                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isMsActive ? "bg-blue-600 animate-pulse" : "bg-emerald-500 animate-pulse"
+                }`}
+              />
+              {isMsActive ? "Outlook Graph" : "Gmail API"}
             </span>
           </div>
           <span className="text-[9px] text-gray-400 block font-medium">
-            {isMicrosoftAccount(activeAccount)
+            {isMsActive
               ? "Microsoft 365 / Outlook Oficial"
               : "Google Workspace Oficial"}
           </span>
@@ -315,7 +340,7 @@ export default function TopBar({
               <div className="space-y-1 my-1 max-h-56 overflow-y-auto">
                 {accounts.map((acc) => {
                   const isCurrent = acc.id === activeAccount?.id;
-                  const isMs = acc.provider === "microsoft" || acc.provider === "outlook";
+                  const isMs = isMicrosoftAccount(acc);
 
                   return (
                     <button
