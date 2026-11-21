@@ -246,6 +246,37 @@ function MailDashboardContent() {
     }
   };
 
+  const handleDisconnectAccount = async (accountToDisconnect: Account) => {
+    const isMs =
+      accountToDisconnect.provider === "microsoft" ||
+      accountToDisconnect.provider === "outlook" ||
+      accountToDisconnect.email.endsWith("@outlook.com") ||
+      accountToDisconnect.email.endsWith("@hotmail.com") ||
+      accountToDisconnect.email.endsWith("@live.com");
+    const providerName = isMs ? "Outlook" : "Gmail";
+    const confirmMsg = `¿Estás seguro de cerrar sesión y desvincular tu cuenta de ${providerName} (${accountToDisconnect.email})?\n\nSe eliminará de tu buzón pero tu sesión en Jabvox seguirá activa.`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/accounts/${accountToDisconnect.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setBanner({
+          type: "success",
+          message: `Cuenta de ${providerName} (${accountToDisconnect.email}) desvinculada exitosamente.`,
+        });
+        await loadInitialData();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Error al desvincular la cuenta.");
+      }
+    } catch {
+      alert("Error de conexión al desvincular la cuenta.");
+    }
+  };
+
   // Pagination navigation
   const handleNextPage = () => {
     if (!nextPageToken) return;
@@ -479,6 +510,7 @@ function MailDashboardContent() {
           onToggleSidebar={() => setIsMobileSidebarOpen(true)}
           onConnectGmail={handleConnectGmail}
           onConnectOutlook={handleConnectMicrosoft}
+          onDisconnectAccount={handleDisconnectAccount}
         />
 
         {/* Notification Toast */}

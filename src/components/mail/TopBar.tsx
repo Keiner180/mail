@@ -52,6 +52,7 @@ interface TopBarProps {
   onToggleSidebar?: () => void;
   onConnectGmail: () => void;
   onConnectOutlook?: () => void;
+  onDisconnectAccount?: (account: Account) => Promise<void> | void;
 }
 
 export default function TopBar({
@@ -66,6 +67,7 @@ export default function TopBar({
   onToggleSidebar,
   onConnectGmail,
   onConnectOutlook,
+  onDisconnectAccount,
 }: TopBarProps) {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState(searchQuery);
@@ -343,53 +345,72 @@ export default function TopBar({
                   const isMs = isMicrosoftAccount(acc);
 
                   return (
-                    <button
+                    <div
                       key={acc.id}
-                      onClick={() => {
-                        onSelectAccount(acc);
-                        setShowAccountMenu(false);
-                      }}
-                      className={`w-full flex items-center gap-3 p-2.5 rounded-2xl text-left transition-all ${
+                      className={`w-full flex items-center justify-between p-2 rounded-2xl transition-all group ${
                         isCurrent
                           ? "bg-slate-100 text-slate-900 font-bold shadow-2xs"
                           : "hover:bg-gray-50 text-gray-700"
                       }`}
                     >
-                      {acc.avatar ? (
-                        <img
-                          src={acc.avatar}
-                          alt={acc.email}
-                          className="w-9 h-9 rounded-full object-cover border border-gray-200 flex-shrink-0"
-                        />
-                      ) : (
-                        <div
-                          className={`w-9 h-9 rounded-xl text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs ${
-                            isMs ? "bg-[#0078d4]" : "bg-[#15605A]"
-                          }`}
-                        >
-                          {isMs ? "MS" : acc.email[0].toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold truncate block">
-                            {acc.name || acc.email}
-                          </span>
-                          <span
-                            className={`text-[9px] px-1 py-0.1 rounded font-semibold ${
-                              isMs ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"
+                      <button
+                        onClick={() => {
+                          onSelectAccount(acc);
+                          setShowAccountMenu(false);
+                        }}
+                        className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
+                      >
+                        {acc.avatar ? (
+                          <img
+                            src={acc.avatar}
+                            alt={acc.email}
+                            className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className={`w-8 h-8 rounded-xl text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs ${
+                              isMs ? "bg-[#0078d4]" : "bg-[#15605A]"
                             }`}
                           >
-                            {isMs ? "Outlook" : "Gmail"}
-                          </span>
-                          {acc.status === "revoked" && (
-                            <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                          )}
+                            {isMs ? "MS" : acc.email[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold truncate block">
+                              {acc.name || acc.email}
+                            </span>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${
+                                isMs ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"
+                              }`}
+                            >
+                              {isMs ? "Outlook" : "Gmail"}
+                            </span>
+                            {acc.status === "revoked" && (
+                              <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                            )}
+                          </div>
+                          <span className="text-[10px] text-gray-400 block truncate">{acc.email}</span>
                         </div>
-                        <span className="text-[11px] text-gray-400 block truncate">{acc.email}</span>
+                      </button>
+
+                      <div className="flex items-center gap-1 pl-2 flex-shrink-0">
+                        {isCurrent && <Check className="w-4 h-4 text-[#15605A]" />}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onDisconnectAccount) {
+                              onDisconnectAccount(acc);
+                            }
+                          }}
+                          className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                          title={`Cerrar sesión de esta cuenta de ${isMs ? "Outlook" : "Gmail"} (${acc.email})`}
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      {isCurrent && <Check className="w-4 h-4 text-[#15605A] flex-shrink-0" />}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
