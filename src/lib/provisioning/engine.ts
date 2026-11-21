@@ -126,13 +126,45 @@ export class ProvisioningEngine {
     });
     if (pooledApp) return pooledApp;
 
-    // 3. Fallback a la aplicación Maestra oficial de Jabvox
-    const masterApp = await db.providerApplication.findFirst({
+    // 3. Fallback a la aplicación Maestra oficial
+    let masterApp = await db.providerApplication.findFirst({
       where: {
         provider,
         applicationType: "MANAGED_MASTER",
       },
     });
+
+    if (!masterApp) {
+      if (provider === "MICROSOFT" && process.env.MICROSOFT_CLIENT_ID) {
+        masterApp = await db.providerApplication.create({
+          data: {
+            provider: "MICROSOFT",
+            applicationType: "MANAGED_MASTER",
+            name: "Microsoft Master Application",
+            clientId: process.env.MICROSOFT_CLIENT_ID,
+            clientSecretEnc: encryptText(process.env.MICROSOFT_CLIENT_SECRET || ""),
+            redirectUri:
+              process.env.MICROSOFT_REDIRECT_URI ||
+              "http://localhost:3005/api/auth/microsoft/callback",
+            isVerified: true,
+          },
+        });
+      } else if (provider === "GOOGLE" && process.env.GOOGLE_CLIENT_ID) {
+        masterApp = await db.providerApplication.create({
+          data: {
+            provider: "GOOGLE",
+            applicationType: "MANAGED_MASTER",
+            name: "Google Master Application",
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecretEnc: encryptText(process.env.GOOGLE_CLIENT_SECRET || ""),
+            redirectUri:
+              process.env.GOOGLE_REDIRECT_URI ||
+              "http://localhost:3005/api/auth/google/callback",
+            isVerified: true,
+          },
+        });
+      }
+    }
 
     if (!masterApp) {
       throw new Error(
