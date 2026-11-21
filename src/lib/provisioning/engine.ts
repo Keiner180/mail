@@ -228,8 +228,9 @@ export class ProvisioningEngine {
     const account = await db.$transaction(async (tx) => {
       const existingAccount = await tx.connectedAccount.findUnique({
         where: {
-          userId_email: {
+          userId_provider_email: {
             userId: params.userId,
+            provider: params.provider,
             email: params.email,
           },
         },
@@ -239,8 +240,9 @@ export class ProvisioningEngine {
 
       const createdAccount = await tx.connectedAccount.upsert({
         where: {
-          userId_email: {
+          userId_provider_email: {
             userId: params.userId,
+            provider: params.provider,
             email: params.email,
           },
         },

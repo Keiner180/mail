@@ -204,7 +204,7 @@ model ConnectedAccount {
   calendarEvents  CalendarEvent[]
   usageMetrics    UsageMetric[]
 
-  @@unique([userId, email])
+  @@unique([userId, provider, email])
   @@index([userId])
   @@index([provider, status])
   @@map("connected_accounts")
