@@ -1,26 +1,50 @@
-# Jabvox Mail & Calendar — Gestión de Correos (Gmail & Outlook) y Google Calendar
+# Jabvox Mail & Calendar — Plataforma Empresarial Multi-Cuenta
 
-Aplicación web independiente para gestionar cuentas de correo electrónico de **Gmail** y **Outlook / Hotmail** mediante **Google OAuth 2.0**, **Gmail API** y **Microsoft Graph API**, integrando además el módulo completo de **Google Calendar** con soporte para reuniones de Google Meet. Cuenta con sistema propio de autenticación, panel multi-cuenta, experiencia visual inspirada en Gmail (responsive, moderno y limpio), y persistencia en base de datos PostgreSQL con Docker Compose.
+Plataforma unificada e independiente para la gestión centralizada de correos electrónicos corporativos y personales (**Gmail** y **Outlook / Office 365**), calendario dinámico con integración de **Google Meet** y panel de monitoreo exclusivo para **Super Administradores**.
+
+El servicio de correo y calendario está **100% integrado en la suscripción general de Jabvox**, permitiendo a cualquier usuario autenticado vincular múltiples cuentas sin bloqueos artificiales ni cobros por buzón adicional.
 
 ---
 
-## 🚀 Tecnologías y Arquitectura
+## 🚀 Características Principales
 
-- **Frontend & Backend**: Next.js 15 (App Router, React 19, TypeScript).
-- **Estilos**: Tailwind CSS con paleta y diseño inspirados en Gmail.
-- **Base de Datos**: PostgreSQL 16.
-- **ORM**: Prisma 6 con modelos relacionales y tipado estricto.
-- **Seguridad**:
-  - Hashing de contraseñas con **Bcrypt**.
-  - Cifrado simétrico autenticado **AES-256-GCM** para tokens de acceso y actualización de Google en reposo.
-  - Sesiones seguras en base de datos con tokens aleatorios criptográficos (SHA-256) y cookies `httpOnly`, `sameSite=lax`, `secure`.
-  - Sanitización estricta de HTML de correos con **DOMPurify** para prevenir XSS.
-  - Validación de esquemas con **Zod**.
-- **Integración Google**:
-  - Google Cloud OAuth 2.0 (`googleapis`).
-  - Renovación automática y transparente de tokens de acceso (`refresh_token`).
-  - Detección de permisos revocados y gestión de estado.
-- **Contenerización**: Docker y Docker Compose (multi-stage build optimizado).
+### 📧 Bandeja de Correo Multi-Cuenta (Webmail)
+- **Multi-Proveedor Nativo**: Vinculación y sincronización de cuentas **Google (Gmail & Google Workspace)** y **Microsoft (Outlook, Hotmail & Office 365)** mediante sus APIs oficiales (Gmail API v1 y Microsoft Graph API).
+- **Selector Rápido de Cuentas**: Alterna instantáneamente entre bandejas personales y de trabajo desde la barra superior sin recargar la sesión.
+- **Sin Bloqueos de Planes**: Cuentas ilimitadas por usuario dentro del plan mensual de Jabvox.
+- **Redacción Profesional**: Editor enriquecido con adjuntos, auto-guardado de borradores y atajos de teclado.
+- **Buscador en Tiempo Real (`Ctrl + K`)**: Filtrado instantáneo por remitente, destinatario, asunto y carpetas.
+
+### 📅 Calendario & Videollamadas
+- **Google Calendar API v3**: Gestión de agenda, sincronización de eventos y visualización interactiva por mes, semana y día.
+- **Google Meet Integrado**: Creación automática de salas de conferencias virtuales y generación instantánea de enlaces de videollamada al agendar reuniones.
+
+### 🛡️ Panel Exclusivo de Super Administrador (`/admin`)
+- **Acceso Restringido por Rol**: Solo visible y accesible para usuarios con privilegios `SUPER_ADMIN` o `PLATFORM_ADMIN`.
+- **Directorio Global de Cuentas Vinculadas**: Monitoreo de todas las cuentas conectadas en el sistema (proveedor, correo, usuario propietario, estado de sincronización y fecha).
+- **Directorio de Usuarios & Capacidad**: Control de usuarios registrados, cantidad de cuentas vinculadas y estado de cuenta.
+- **Disponibilidad de Servicios Cloud**: Monitoreo del estado operativo de Gmail API, Google Calendar API, Google Meet API, Microsoft Graph API y base de datos PostgreSQL.
+- **Supervisión de Cuotas y Límites Técnicos**: Información detallada de las cuotas de Google Cloud (15.000 req/día estándar, límites de envío anti-spam) y Microsoft Graph (10.000 req/10 min) para previsión de infraestructura.
+
+### 🔐 Seguridad y Cifrado Enterprise
+- **Cifrado AES-256-GCM Envelope**: Todos los tokens OAuth (Access y Refresh Tokens) se almacenan en reposo cifrados con algoritmo simétrico autenticado, vector de inicialización (IV) dinámico y tag de autenticación individual por cuenta.
+- **Refresco Automático de Credenciales**: Renovación transparente de tokens OAuth antes de su expiración.
+- **Aislamiento Estricto por Usuario**: Ningún usuario puede acceder a buzones, mensajes, sesiones o tokens de otro usuario.
+- **Protección XSS & CSRF**: Sanitización de correos HTML con **DOMPurify** y verificación de estados criptográficos en los flujos OAuth.
+
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router, React 19, TypeScript).
+- **Estilos**: [Tailwind CSS](https://tailwindcss.com/) con componentes optimizados y diseño responsive.
+- **Base de Datos**: [PostgreSQL 16](https://www.postgresql.org/).
+- **ORM**: [Prisma ORM 6](https://www.prisma.io/) con esquema relacional fuertemente tipado.
+- **Integraciones Oficiales**:
+  - `googleapis` (Gmail API v1, Google Calendar API v3).
+  - `@microsoft/microsoft-graph-client` (Microsoft Graph API).
+- **Criptografía**: Módulos nativos `node:crypto` (AES-256-GCM, SHA-256) y `bcryptjs`.
+- **Iconografía**: [Lucide React](https://lucide.dev/).
 
 ---
 
@@ -28,83 +52,84 @@ Aplicación web independiente para gestionar cuentas de correo electrónico de *
 
 ```text
 correo/
-├── Dockerfile                   # Construcción multi-stage para producción
-├── docker-compose.yml           # Orquestación de servicios (app + PostgreSQL)
+├── docker-compose.yml           # Orquestación de servicios (PostgreSQL + App)
+├── Dockerfile                   # Build multi-stage para producción
 ├── package.json                 # Dependencias y scripts
-├── tsconfig.json                # Configuración TypeScript
-├── tailwind.config.js           # Configuración de estilos y colores
+├── tsconfig.json                # Configuración de TypeScript
 ├── prisma/
-│   └── schema.prisma            # Modelos de datos: User, Session, PasswordResetToken, ConnectedAccount
+│   └── schema.prisma            # Modelos: User, Session, ConnectedAccount, OAuthToken, CalendarEvent
 ├── src/
 │   ├── app/
+│   │   ├── admin/               # Panel Exclusivo Super Administrador
 │   │   ├── api/
-│   │   │   ├── auth/            # Endpoints: registro, login, logout, me, perfil, recuperación
-│   │   │   ├── accounts/        # Gestión de cuentas vinculadas y predeterminada
-│   │   │   └── mail/            # Endpoints Gmail: mensajes, detalle, envío, borradores, adjuntos, lote
+│   │   │   ├── admin/overview/  # Métricas, cuentas y servicios para Super Admin
+│   │   │   ├── auth/            # Endpoints de autenticación y callbacks OAuth (Google / Microsoft)
+│   │   │   ├── accounts/        # Gestión y desvinculación de cuentas
+│   │   │   ├── calendar/        # Endpoints de eventos y sincronización de calendario
+│   │   │   └── mail/            # Mensajes, hilos, envío, borradores y adjuntos
 │   │   ├── auth/
-│   │   │   ├── login/           # Pantalla de inicio de sesión
-│   │   │   ├── register/        # Pantalla de registro de usuarios
-│   │   │   ├── forgot-password/ # Solicitud de restablecimiento
-│   │   │   └── reset-password/  # Restablecimiento de contraseña con token
-│   │   ├── profile/             # Panel de usuario y administración de cuentas vinculadas
-│   │   ├── mail/                # Bandeja de entrada y gestor principal
-│   │   ├── globals.css          # Estilos globales y scrollbars
-│   │   └── layout.tsx           # Layout raíz de la aplicación
+│   │   │   ├── login/           # Inicio de sesión
+│   │   │   └── register/        # Registro de usuarios
+│   │   ├── calendar/            # Vista de Google Calendar y Meet
+│   │   ├── mail/                # Bandeja de entrada Webmail
+│   │   ├── profile/             # Gestión de perfil y cuentas vinculadas
+│   │   └── layout.tsx           # Layout principal y providers
 │   ├── components/
 │   │   └── mail/
-│   │       ├── TopBar.tsx       # Barra superior con buscador en tiempo real y selector de cuentas
-│   │       ├── Sidebar.tsx      # Menú lateral con carpetas (Recibidos, Destacados, etc.) y botón Redactar
-│   │       ├── MailList.tsx     # Lista de correos con selección múltiple y acciones rápidas
-│   │       ├── MailViewer.tsx   # Visor de correos con HTML seguro y descarga de adjuntos
-│   │       ├── ComposeModal.tsx # Ventana flotante/expandible de redacción y auto-guardado
-│   │       └── ConnectWelcome.tsx # Pantalla de bienvenida para vincular la primera cuenta
+│   │       ├── TopBar.tsx       # Barra superior con buscador, selector multi-cuenta y perfil
+│   │       ├── Sidebar.tsx      # Navegación por carpetas y botón Redactar
+│   │       ├── MailList.tsx     # Listado interactivo de correos con acciones masivas
+│   │       ├── MailViewer.tsx   # Visor de correos seguro con descarga de adjuntos
+│   │       └── ComposeModal.tsx # Redactor de mensajes con soporte de adjuntos
 │   └── lib/
-│       ├── auth.ts              # Control de sesiones, hashing y validaciones
-│       ├── crypto.ts            # Cifrado AES-256-GCM y generación de tokens
-│       ├── db.ts                # Instancia singleton de PrismaClient
-│       ├── email.ts             # Envío de correos transaccionales (Nodemailer / fallback log)
-│       └── gmail/
-│           ├── oauth.ts         # Flujo Google OAuth 2.0 y renovación de tokens
-│           └── service.ts       # Operaciones oficiales con Gmail API
+│       ├── auth.ts              # Manejo de sesiones seguras y verificación de roles
+│       ├── crypto.ts            # Motor criptográfico AES-256-GCM y hashing
+│       ├── db.ts                # Cliente singleton de Prisma
+│       ├── gmail/               # Servicios oficiales de Google OAuth y Gmail API
+│       ├── outlook/             # Servicios oficiales de Microsoft OAuth y Graph API
+│       └── calendar/            # Servicios de Google Calendar y Google Meet
 ```
 
 ---
 
-## ⚙️ Configuración en Google Cloud Console
+## ⚙️ Configuración de Proveedores Cloud
 
-Para conectar cuentas de Gmail, se requiere registrar la aplicación en Google Cloud:
-
-1. Ingresa a [Google Cloud Console](https://console.cloud.google.com/).
-2. Crea un nuevo proyecto (ej. `Jabvox Mail`).
-3. En el menú de navegación, ve a **APIs y servicios > Biblioteca**.
-4. Busca **Gmail API** y haz clic en **Habilitar**.
-5. Ve a **APIs y servicios > Pantalla de consentimiento de OAuth**:
-   - Selecciona tipo de usuario **Externo** y haz clic en *Crear*.
-   - Completa el nombre de la aplicación (`Jabvox Mail`) y tu correo de soporte.
-   - En **Permisos (Scopes)**, agrega:
-     - `.../auth/userinfo.email`
-     - `.../auth/userinfo.profile`
-     - `https://www.googleapis.com/auth/gmail.modify`
-   - En **Usuarios de prueba**, añade los correos de Gmail con los que probarás la aplicación.
-6. Ve a **APIs y servicios > Credenciales**:
-   - Haz clic en **Crear credenciales > ID de cliente de OAuth**.
-   - Tipo de aplicación: **Aplicación web**.
-   - Nombre: `Cliente Jabvox Mail Web`.
+### 1. Google Cloud Console (Gmail & Calendar API)
+1. Accede a [Google Cloud Console](https://console.cloud.google.com/).
+2. Crea o selecciona un proyecto (ej. `Jabvox Enterprise`).
+3. En **APIs y servicios > Biblioteca**, habilita:
+   - **Gmail API**
+   - **Google Calendar API**
+4. En **Pantalla de consentimiento de OAuth**:
+   - Selecciona tipo **Externo**.
+   - Agrega los scopes: `email`, `profile`, `https://mail.google.com/`, `https://www.googleapis.com/auth/calendar.events`, `https://www.googleapis.com/auth/calendar`.
+5. En **Credenciales**, crea un **ID de cliente de OAuth** (tipo *Aplicación web*):
    - **URI de redireccionamiento autorizados**:
-     - `http://localhost:3005/api/auth/google/callback` (o tu dominio de producción).
-   - Haz clic en *Crear* y copia el **ID de cliente** y el **Secreto de cliente**.
+     `http://localhost:3005/api/auth/google/callback` (o tu URL de producción).
+6. Copia el `Client ID` y `Client Secret` en tu archivo `.env`.
+
+### 2. Microsoft Entra ID / Azure Portal (Outlook & Microsoft Graph)
+1. Accede a [Microsoft Entra ID / Azure Portal](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade).
+2. Registra una nueva aplicación:
+   - Tipos de cuenta compatibles: *Cuentas en cualquier directorio organizativo y cuentas Microsoft personales*.
+   - **URI de redirección (Web)**:
+     `http://localhost:3005/api/auth/microsoft/callback` (o tu URL de producción).
+3. En **Certificados y secretos**, crea un nuevo *Secreto de cliente*.
+4. En **Permisos de API**, agrega permisos delegados de **Microsoft Graph**:
+   - `User.Read`, `Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `offline_access`.
+5. Copia el `Application (client) ID` y el `Client Secret` en tu archivo `.env`.
 
 ---
 
 ## 🔐 Variables de Entorno (`.env`)
 
-Copia el archivo `.env.example` a `.env`:
+Copia la plantilla de ejemplo:
 
 ```bash
 cp .env.example .env
 ```
 
-Configura los valores correspondientes:
+Configura tus credenciales en el archivo `.env`:
 
 ```env
 # Base de Datos PostgreSQL
@@ -117,15 +142,23 @@ DB_PORT="5433"
 # Aplicación
 PORT="3005"
 NEXTAUTH_URL="http://localhost:3005"
+NEXT_PUBLIC_APP_URL="http://localhost:3005"
+
+# Claves criptográficas (32 bytes = 64 caracteres hexadecimales)
 APP_SECRET="tu-clave-secreta-hex-de-64-caracteres"
 ENCRYPTION_KEY="tu-clave-de-cifrado-aes256-hex-de-64-caracteres"
 
-# Google OAuth 2.0
+# Google Cloud OAuth 2.0
 GOOGLE_CLIENT_ID="tu-google-client-id.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="tu-google-client-secret"
 GOOGLE_REDIRECT_URI="http://localhost:3005/api/auth/google/callback"
 
-# Servidor SMTP (Opcional, para envío de restablecimiento de contraseña)
+# Microsoft Entra ID (Graph API)
+MICROSOFT_CLIENT_ID="tu-microsoft-app-client-id"
+MICROSOFT_CLIENT_SECRET="tu-microsoft-app-client-secret"
+MICROSOFT_REDIRECT_URI="http://localhost:3005/api/auth/microsoft/callback"
+
+# Servidor SMTP (Opcional para recuperación de contraseña)
 SMTP_HOST="localhost"
 SMTP_PORT="1025"
 SMTP_USER=""
@@ -133,77 +166,68 @@ SMTP_PASS=""
 SMTP_FROM="soporte@jabvox.com"
 ```
 
-> **Generación rápida de claves criptográficas:**
+> **Generación de claves seguras de 256 bits:**
 > ```bash
 > node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 > ```
 
 ---
 
-## 🐳 Ejecución con Docker Compose
+## 💻 Instalación y Ejecución
 
-Para desplegar la base de datos y la aplicación web mediante contenedores:
+### Opción A: Desarrollo Local
 
-```bash
-# Iniciar servicios con compilación en segundo plano
-docker compose up -d --build
+1. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
 
-# Verificar estado y logs
-docker compose ps
-docker compose logs -f web
-```
-
-La aplicación estará accesible en: `http://localhost:3005`
-
----
-
-## 💻 Ejecución en Desarrollo Local
-
-1. Iniciar la base de datos PostgreSQL:
+2. **Iniciar la base de datos PostgreSQL:**
    ```bash
    docker compose up -d db
    ```
 
-2. Aplicar las migraciones a la base de datos:
+3. **Aplicar migraciones de Prisma:**
    ```bash
-   bun x prisma db push
-   # o: npx prisma db push
+   npx prisma db push
    ```
 
-3. Iniciar el servidor de desarrollo:
+4. **Iniciar el servidor de desarrollo:**
    ```bash
-   bun dev
-   # o: npm run dev
+   npm run dev
    ```
 
-4. Abrir en el navegador:
-   `http://localhost:3005`
+5. **Acceder a la aplicación:**
+   - Webmail y Bandeja de Entrada: [http://localhost:3005/mail](http://localhost:3005/mail)
+   - Calendario: [http://localhost:3005/calendar](http://localhost:3005/calendar)
+   - Panel Super Admin: [http://localhost:3005/admin](http://localhost:3005/admin)
 
 ---
 
-## 🧪 Verificación y Pruebas
+### Opción B: Despliegue con Docker Compose
 
-Se incluye un script de prueba integral que valida:
-1. Hashing seguro y verificación de contraseñas.
-2. Cifrado simétrico AES-256-GCM y descifrado de tokens OAuth.
-3. Creación y consulta de usuarios en PostgreSQL.
-4. Generación y validación de sesiones seguras.
-5. Emisión y consumo único de tokens de recuperación de contraseña.
-6. Vinculación de múltiples cuentas Gmail con aislamiento por usuario.
-7. Construcción de URL de autorización OAuth 2.0 con prevención de CSRF.
+Para desplegar la aplicación completa (PostgreSQL + Contenedor de producción Next.js):
 
-Para ejecutar las pruebas:
 ```bash
-bun run test-e2e.ts
+docker compose up -d --build
+```
+
+Para verificar logs y estado:
+```bash
+docker compose ps
+docker compose logs -f web
 ```
 
 ---
 
-## 🛡️ Criterios de Seguridad Implementados
+## 🛡️ Criterios de Seguridad y Privacidad
 
-- **Tokens en reposo**: Ni el token de acceso ni el token de actualización se almacenan en texto plano en la base de datos; ambos se cifran con AES-256-GCM y vector de inicialización único por registro.
-- **Aislamiento multi-usuario**: Todas las consultas a mensajes, adjuntos, envío y cuentas verifican que la cuenta pertenezca estrictamente al usuario autenticado en la sesión.
-- **Protección CSRF**: Los flujos OAuth 2.0 y restablecimiento de contraseña utilizan estados criptográficos firmados con expiración.
-- **Sanitización HTML**: Los correos entrantes se limpian con DOMPurify antes de su renderizado, bloqueando etiquetas `<script>`, `<iframe>` u objetos potencialmente maliciosos.
-- **Descarga segura de adjuntos**: Servidos mediante streaming en el backend con cabeceras `Content-Disposition: attachment` y tipos MIME validados.
+- **Zero Plain-Text Secrets**: Ningún `access_token` ni `refresh_token` se guarda en texto plano en la base de datos.
+- **Sin exposición de credenciales**: El archivo `.env` está estrictamente ignorado en `.gitignore`. Solo se versiona la plantilla de ejemplo `.env.example`.
+- **Control de Roles**: El panel de administración valida la sesión a nivel de middleware y consulta de base de datos (`role === 'SUPER_ADMIN'`), impidiendo el acceso no autorizado.
+- **Sanitización Robusta**: Bloqueo total de vectores de ataque XSS en cuerpos de correo electrónicos.
+- **Límites de Proveedores**: Manejo preventivo de *Rate Limits* y reintentos automáticos mediante *Exponential Backoff* para cumplimiento de cuotas de Google Cloud y Microsoft Graph.
 
+---
+
+© 2026 Jabvox Enterprise. Todos los derechos reservados.
